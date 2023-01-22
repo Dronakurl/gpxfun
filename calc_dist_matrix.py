@@ -1,7 +1,13 @@
-import similaritymeasures
+"""
+Provides functions to calculate distance matrices with different measures
+"""
+from math import sqrt
+from pathlib import Path
+import pickle
+
 import numpy as np
 import pandas as pd
-from math import sqrt
+import similaritymeasures
 
 
 def area_comp(x: list, y: list):
@@ -30,7 +36,7 @@ def calc_dist_matrix(
     df: pd.DataFrame,
     simmeasure=area_comp,
     compvar: str = "route_inter",
-) -> np.array:
+):
     # Um Fehler zu erkennen ein blöder Wert
     dists = np.full((len(df), len(df)), 234312992.2132)
     for xi in range(len(df)):
@@ -42,3 +48,22 @@ def calc_dist_matrix(
                 dists[xi, yi] = 0
             print(f"xi={xi} yi={yi}: {dists[xi,yi]}")
     return dists
+
+
+def update_dist_matrix(
+    d: pd.DataFrame, mypickle: str, updated: bool = True, simmeasure=mae
+):
+    if Path(mypickle).is_file() and not updated:
+        with open(mypickle, "rb") as f:
+            dists = pickle.load(f)
+    else:
+        dists = {}
+        for a in ["arbeit", "heim"]:
+            print(f"Berechne die Abstandsmatrix für {a}")
+            dsub = d[d[a]]
+            dists[a + "_dateinamen"] = list(dsub.loc[:, "dateiname"])
+            dists[a] = calc_dist_matrix(dsub, simmeasure=simmeasure)
+        with open(mypickle, "wb") as f:
+            pickle.dump(dists, f)
+    return dists
+

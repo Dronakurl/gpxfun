@@ -1,13 +1,15 @@
+''' 
+A dash app to visualize the results
+'''
 from dash import dcc, html, Dash, Output, Input, State, ctx, MATCH, ALL, dash_table
 import dash_bootstrap_components as dbc
 import dash
-import io
-import base64
+import pickle
+import re
+from plots import plotaroute
 
-# setup dash app
-latofont = ['https://fonts.googleapis.com/css2?family=Lato&display=swap']
 dbc_css = "https://cdn.jsdelivr.net/gh/AnnMarieW/dash-bootstrap-templates/dbc.css"
-dashapp = Dash(__name__, external_stylesheets=[dbc.themes.SLATE, dbc_css, latofont])
+dashapp = Dash(__name__, external_stylesheets=[dbc.themes.SLATE, dbc_css])
 dashapp.title="GPX analyzer"
 
 header = html.H4( "GPX analyzer", className="bg-primary text-white p-2 mb-2 text-center")
@@ -36,14 +38,14 @@ sidebar = dbc.Col(
             body=True
         )
     ],
-    width=4
+    width=3
 )
 
 convplot = dbc.Col(
     [
         dbc.Card(
             [
-                dbc.CardHeader("map"),
+                dbc.CardHeader("map of important clusters"),
                 dbc.CardBody(id="plot")
             ]
         )
@@ -68,46 +70,23 @@ dashapp.layout = dbc.Container(
 )
 
 
+with open("pickles/df.pickle", "rb") as f:
+    d = pickle.load(f)
+# get the names of the biggest clusters
+imp_clusters = d.cluster.drop_duplicates()
+imp_clusters = imp_clusters[imp_clusters.astype(bool)].sort_values()
+imp_clusters = [x for x in imp_clusters if int(re.search("\D_(\d+)", x).group(1)) < 4]
+
 @dashapp.callback(Output("plot","children"),
               Input('upload-data', 'contents'),
               State('upload-data', 'filename'))
 def showplot(contents,filenames):
-    if contents is not None:    
-        tabs=[]
-        for ii in range(len(contents)):
-            cc=contents[ii]
-            filename=filenames[ii]
-            content_type, content_string = cc.split(',')
-            decoded = base64.b64decode(content_string)
-            f=io.StringIO(decoded.decode('utf-8'))
-            vf=voltagefile.VoltageFile(infile=f)
-            outtext=vf.transformrigol()
-            fig=vf.plotvtot()
-            fig.update_layout( margin=dict(l=20, r=20, t=40, b=20))
-            tabs.append( 
-                dbc.Tab(
-                    [
-                        dcc.Graph(figure=fig,style={"height":"300px"}),
-                        dcc.Textarea(
-                            value=outtext,
-                            id={'type':'textoutput','index':filename},
-                            style={"display":"none"}
-                        ),
-                        dbc.Button("save file",id={'type': 'savebutton', 'index':filename},color="primary")
-                    ],
-                    label=filename
-                )
-            )
-            amp=   str(vf.wpars["amplitude"])+" V"
-            omega= str(vf.wpars["frequency"])+" Hz"
-            offset=str(vf.wpars["offset"])+" V"
-        children=dbc.Tabs(tabs)
-    else:
-        children=[dbc.Alert("nothing to plot yet",color="primary")]
-        amp="no osci data yet"
-        omega="no osci data yet"
-        offset="no osci data yet"
-    return children,amp,omega,offset
+    fig=plotaroute(
+        d[d.arbeit & d.cluster.isin(imp_clusters)],
+        groupfield="cluster",
+        title=None,
+    )
+    return [dcc.Graph(figure=fig)]
 
 app=dashapp.server
 app.secret_key = 'super secret key'

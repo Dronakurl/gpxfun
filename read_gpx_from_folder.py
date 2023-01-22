@@ -86,6 +86,7 @@ def read_gpx_file(f: Path) -> dict:
 
 def read_gpx_file_list(filelist: list) -> pd.DataFrame:
     """reads gpx files from a file list"""
+    print(f"read_gpx_file_list: {len(filelist)} Dateien lesen")
     r = []
     for f in filelist:
         if not str(f).endswith("gpx"):
@@ -97,31 +98,32 @@ def read_gpx_file_list(filelist: list) -> pd.DataFrame:
 
 def read_gpx_from_folder(infolder: str) -> pd.DataFrame:
     """read and parse all gpx files from a folder"""
-    return read_gpx_file_list(
-        [Path(infolder) / f for f in getfilelist(infolder, suffix="gpx")]
-    )
+    return read_gpx_file_list(getfilelist(infolder, suffix="gpx", withpath=True))
 
 
 def update_pickle_from_list(
     filelist: list, mypickle: str = "pickles/df.pickle"
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, bool]:
     """update a pickle file of gpx data with a list of gpx files"""
     if not Path(mypickle).is_file():
-        return read_gpx_file_list(filelist)
-
-    with open(mypickle, "rb") as f:
-        d = pickle.load(f)
-    fl = [f for f in filelist if f.name not in d["dateiname"]]
-    d = pd.concat([d, read_gpx_file_list(fl)], axis=0)
-
-    with open(mypickle, "wb") as f:
-        pickle.dump(d, f)
-    return d
-
+        print(f"update_pickle_from_list: {mypickle} gibt es noch nicht")
+        d= pd.DataFrame()
+        fl = filelist
+    else:
+        with open(mypickle, "rb") as f:
+            d = pickle.load(f)
+        fl = [f for f in filelist if f.name not in list(d["dateiname"])]
+    print(f"update_pickle_from_list: {len(fl)} von {len(filelist)} müssen noch eingelesen werden")
+    updated = len(fl) > 0
+    if updated:
+        d = pd.concat([d, read_gpx_file_list(fl)], axis=0)
+        with open(mypickle, "wb") as f:
+            pickle.dump(d, f)
+    return d, updated
 
 def update_pickle_from_folder(
     infolder: str, mypickle: str = "pickles/df.pickle"
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, bool]:
     """update a pickle file of gpx data with a folder containing gpx files"""
     return update_pickle_from_list(
         getfilelist(infolder, suffix="gpx", withpath=True), mypickle=mypickle

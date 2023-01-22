@@ -29,5 +29,5 @@ def plausi_single_route(d: pd.DataFrame, dists: np.array, nn:int):
     )
     samp = [dn.split("_")[-1] for dn in samp ]
     print(df.loc[df.dateiname.isin(samp)].loc[:, ["dateiname", "dist_arbeit_"+dn]])
-    plotaroute(df.loc[df.dateiname.isin(samp)], groupfield="dateiname")
+    plotaroute(df.loc[df.dateiname.isin(samp)], groupfield="dateiname").show()
 
