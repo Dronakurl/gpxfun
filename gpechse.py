@@ -31,6 +31,10 @@ dists = update_dist_matrix(
 # Apply Cluster
 d = cluster_all(d, dists)
 
+import sys
+print("gpechse.py: exit with sys.exit. More nice code after this for interactive mode")
+sys.exit(0)
+
 # get the names of the biggest clusters
 imp_clusters = d.cluster.drop_duplicates()
 imp_clusters = imp_clusters[imp_clusters.astype(bool)].sort_values()
@@ -38,11 +42,12 @@ imp_clusters = [x for x in imp_clusters if int(re.search("\D_(\d+)", x).group(1)
 
 # Display all routes in each cluster to see if clustering worked
 
-plotaroute(
+fig=plotaroute(
     d[d.arbeit & d.cluster.isin(imp_clusters)],
     groupfield="cluster",
     title="Show all clusters for arbeit",
-).show()
+)
+fig.show()
 
 for g in list(np.unique(d.cluster[d.cluster.isin(imp_clusters)])):
     plotaroute(d[d.cluster == g], groupfield="dateiname", title=f"Cluster {g}").show()
@@ -76,20 +81,28 @@ df["distx"] = df.point.apply(lambda x: x[0])
 df["disty"] = df.point.apply(lambda x: x[1])
 px.scatter(df, x="distx", y="disty", color="cluster")
 
-# Dashboard mit den Ergebnissen, 3 größte Cluster
-# Präsentation für den Hackaton
 # Anzahl stops
 
-# # mittlere Zeit je Jahreszeit
-# fig=px.histogram(d[d.arbeit],x="dauer",y="jahreszeit",orientation="h",histnorm="probability",
-#     labels={"jahreszeit":"Jahreszeit","y":"Anteil"})
-# fig.update_layout(
-#     bargap=.2,
-#     xaxis_title="Dauer",
-#     # yaxis = dict(
-#         # tickmode = 'array',
-#         # tickvals = [0,1,2,3,4,5,6],
-#         # ticktext = ["Mo","Di","Mi","Do","Fr","Sa","So"]
-#     # )
-# )
-# fig.show()
+
+dr = d[d.arbeit].copy()
+# exclude some strange outliers
+dr = dr[dr.dateiname != "20220920T075709000.gpx"]
+dr.cluster = dr.cluster.apply(lambda x: x if x in imp_clusters else "sonstige")
+
+ds=dr[["jahreszeit","wochentag","cluster","dauer"]]
+ds=dr[["cluster","dauer"]]
+X=ds.drop("dauer",axis=1)
+X=pd.get_dummies(X)
+y=ds[["dauer"]]
+from sklearn.model_selection import KFold, cross_val_score
+from sklearn import linear_model
+logr = linear_model.LinearRegression()
+logr.fit(X,y)
+logr.coef_
+clf = linear_model.LinearRegression()
+k_folds = KFold(n_splits = 5)
+scores = cross_val_score(clf, X, y, cv = k_folds)
+print("Cross Validation Scores: ", scores)
+print("Average CV Score: ", scores.mean())
+print("Number of CV Scores used in Average: ", len(scores))
+

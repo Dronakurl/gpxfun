@@ -46,7 +46,7 @@ def read_gpx_file(f: Path) -> dict:
     p["monat"] = p["datum"].month
     p["wochentag"] = p["datum"].strftime("%A")
     p["jahreszeit"] = season_of_date(p["datum"])
-    p["dauer"] = gpxpy.gpx.GPX.get_duration(g)
+    p["dauer"] = gpxpy.gpx.GPX.get_duration(g)/60
     p["keywords"] = "" if g.keywords is None else g.keywords
     if f.name == "20221013T010322000.gpx":
         p["keywords"] = "heim"
