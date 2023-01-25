@@ -5,6 +5,7 @@ Archiv/
 *.ods
 data/
 pickle/
+file_system_store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

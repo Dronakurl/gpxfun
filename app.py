@@ -1,41 +1,68 @@
 """ 
 A dash app to visualize the results
 """
-from dash import dcc, html, Dash, Output, Input, State, ctx, MATCH, ALL, dash_table
+# from dash import dcc, html, Dash, Output, Input, State, ctx, MATCH, ALL, dash_table
+from dash_extensions.enrich import (
+    ctx,
+    dcc,
+    html,
+    Dash,
+    Output,
+    Input,
+    State,
+    ServersideOutput,
+)
 import dash_bootstrap_components as dbc
 import dash
 import pickle
 import re
+import base64
+import io
+import uuid
+import threading
+from pathlib import Path
 from plots import plotaroute, violin
+from utilities import getfilelist
+from read_gpx_from_folder import update_pickle_from_list, update_pickle_from_folder
 
 dbc_css = "https://cdn.jsdelivr.net/gh/AnnMarieW/dash-bootstrap-templates/dbc.css"
 dashapp = Dash(__name__, external_stylesheets=[dbc.themes.SLATE, dbc_css])
 dashapp.title = "GPX analyzer"
 
 header = html.H4(
-    "GPX analyzer - Was ist der schnellste Weg zur Arbeit? ",
-    style={"margin-top":"5px"}
+    "GPX analyzer - What's the fastest way to get to work? ",
+    style={"margin-top": "5px"}
     # className="bg-primary text-white p-2 mb-2 text-center",
 )
-
-loadcard = dbc.Card(
-    dcc.Upload(
-        id="upload-data",
-        children=html.Div(["Drag and Drop or ", html.A("Select Files")]),
-        multiple=True,
-        style={
-            "height": "60px",
-            "lineHeight": "60px",
-            "borderWidth": "1px",
-            "borderStyle": "dashed",
-            "borderRadius": "5px",
-            "textAlign": "center",
-            "margin": "10px",
-        },
-    ),
-    body=True,
+upload = dcc.Upload(
+    id="upload-data",
+    children=html.Div(["Drag and Drop or ", html.A("Select Files")]),
+    multiple=True,
+    style={
+        "height": "60px",
+        "lineHeight": "60px",
+        "borderWidth": "1px",
+        "borderStyle": "dashed",
+        "borderRadius": "5px",
+        "textAlign": "center",
+        "margin": "10px",
+    },
 )
-loadstuff = dbc.Tab(loadcard, disabled=True, label="Load (tbd; use gpechse.py)")
+load_textarea = dcc.Textarea(
+    id="load_textarea",
+    value="",
+    readOnly=True,
+    rows=12,
+    style={"width": "100%", "resize": "none", "padding": "5px"},
+)
+progessbar = dbc.Progress(value=25, id="progressbar")
+loadcard = dbc.Card(
+    [
+        dbc.CardHeader("Upload data from gpx files"),
+        dbc.CardBody([upload, progessbar, load_textarea]),
+    ]
+)
+loadstuff = dbc.Tab(loadcard, disabled=False, label="Load")
 
 showmaps = dbc.Tab(
     dbc.Card([dbc.CardHeader("Map of important clusters"), dbc.CardBody(id="mapplot")]),
@@ -61,7 +88,7 @@ violinfactor_selected_file_txt = dcc.Textarea(
     value="Click on a data point to show filename",
     readOnly=True,
     rows=18,
-    style={"width": "100%", "resize":"none","padding":"5px"},
+    style={"width": "100%", "resize": "none", "padding": "5px"},
 )
 dataandcontrols = dbc.Card(
     [violinfactor_dropdown, violinfactor_selected_file_txt], body=True
@@ -83,33 +110,111 @@ violins = dbc.Tab(
 
 tabs = dbc.Tabs([loadstuff, showmaps, violins], active_tab="violintab")
 
-dashapp.layout = dbc.Container(
-    [header, tabs, dcc.Store(id="store")],
-    fluid=True,
-    className="dbc",
+
+def get_data_from_pickle_session(sessionid):
+    picklefn = Path("sessions") / sessionid / "df.pickle"
+    if not picklefn.is_file():
+        return False
+    with open(picklefn, "rb") as f:
+        return pickle.load(f)
+
+
+def serve_layout():
+    sessionid = str(uuid.uuid4())
+    print(f"serve_layout: start with sessionid = {sessionid}")
+
+    return dbc.Container(
+        [
+            header,
+            tabs,
+            dcc.Interval(id="progressinterval", disabled=False, interval=1000),
+            dcc.Store(data=False, id="storedflag"),
+            dcc.Store(data=sessionid, id="sessionid"),
+            dcc.Store(data=0, id="numberoffiles"),
+        ],
+        fluid=True,
+        className="dbc",
+    )
+
+
+dashapp.layout = serve_layout
+
+
+@dashapp.callback(
+    Output("progressbar", "value"),
+    Output("storedflag", "data"),
+    # Output("load_textarea", "value"),
+    Input(
+        "progressinterval", "n_intervals"
+    ),  # each second, this Input triggers the callback
+    State("sessionid", "data"),
+    State("numberoffiles", "data"),
 )
+def update_progessbar(n_intervals, sessionid, numberoffiles):
+    """update the progress bar from the number of files remaining"""
+    if ctx.triggered_id == None or numberoffiles < 1:
+        return (0, False)
+    n = len(getfilelist(Path("sessions") / sessionid, "gpx"))
+    storedflag = (n==0)
+    for thread in threading.enumerate():
+        print(f"update_progessbar({sessionid}): thread.names : {thread.name}")
+        if thread.name == "read" and thread.is_alive():
+            storedflag = False
+    percentage = (numberoffiles - n) / numberoffiles * 100
+    print(
+        f"update_progessbar{sessionid}: numberoffiles={numberoffiles}, percentage={percentage}, storedflag={storedflag}"
+    )
+    return (percentage, storedflag)
 
 
-# prepare all the data, read the dataset
-with open("pickles/df.pickle", "rb") as f:
-    d = pickle.load(f)
-# get the names of the biggest clusters
-imp_clusters = d.cluster.drop_duplicates()
-imp_clusters = imp_clusters[imp_clusters.astype(bool)].sort_values()
-imp_clusters = [x for x in imp_clusters if int(re.search("\D_(\d+)", x).group(1)) < 4]
-dr = d[d.arbeit].copy()
-# exclude some strange outliers
-dr = dr[dr.dateiname != "20220920T075709000.gpx"]
-dr.cluster = dr.cluster.apply(lambda x: x if x in imp_clusters else "sonstige")
+@dashapp.callback(
+    Output("numberoffiles", "data"),
+    Input("upload-data", "contents"),
+    Input("upload-data", "filename"),
+    State("sessionid", "data"),
+    prevent_initial_call=True,
+)
+def upload(contents, filenames, sessionid):
+    if ctx.triggered_id == None:
+        return
+    # create sessionid folder
+    (Path("sessions") / sessionid).mkdir(parents=True, exist_ok=True)
+    # store alle files in a tmp session directory
+    for ii in range(len(contents)):
+        cc = contents[ii]
+        filename = filenames[ii]
+        content_type, content_string = cc.split(",")
+        decoded = base64.b64decode(content_string)
+        strdata = decoded.decode("utf-8")
+        # f=io.StringIO(decoded.decode('utf-8'))
+        with open(Path("sessions") / sessionid / filename, "w") as f:
+            f.write(strdata)
+    print(f"upload({sessionid}): number of files = {len(contents)}")
+    """ Parse the gpxfiles in the session folder """
+    mythread = threading.Thread(
+        target=update_pickle_from_folder,
+        name="read",
+        kwargs={
+            "infolder": Path("sessions") / sessionid,
+            "mypickle": Path("sessions") / sessionid / "df.pickle",
+            "delete": True,
+        },
+    )
+    mythread.start()
+    return len(contents)
 
 
 @dashapp.callback(
     Output("mapplot", "children"),
-    Input("upload-data", "contents"),
-    State("upload-data", "filename"),
+    Input("storedflag", "data"),
+    State("sessionid", "data"),
+    prevent_initial_call=True,
 )
-def showmap(contents, filenames):
+def showmap(storedflag, sessionid):
     """Update the map with clusters"""
+    if storedflag == False:
+        return dash.no_update
+    dr = get_data_from_pickle_session(sessionid)
     fig = plotaroute(
         dr,
         groupfield="cluster",
@@ -121,11 +226,15 @@ def showmap(contents, filenames):
 @dashapp.callback(
     Output("violinplot", "figure"),
     Input("violinfactor", "value"),
-    State("upload-data", "contents"),
-    State("upload-data", "filename"),
+    Input("storedflag", "data"),
+    State("sessionid", "data"),
+    prevent_initial_call=True,
 )
-def showhists(violinfactor, contents, filenamesi):
+def showhists(violinfactor, storedflag, sessionid):
     """Update the histogram or violin plots"""
+    if storedflag == False:
+        return dash.no_update
+    dr = get_data_from_pickle_session(sessionid)
     fig = violin(dr, violinfactor)
     return fig
 
@@ -133,16 +242,23 @@ def showhists(violinfactor, contents, filenamesi):
 @dashapp.callback(
     Output("violinfactor_selected_file_txt", "value"),
     Input("violinplot", "clickData"),
+    Input("storedflag", "data"),
+    State("sessionid", "data"),
+    prevent_initial_call=True,
 )
-def clickondata(clickdata):
+def clickondata(clickdata, storedflag, sessionid):
     """Show information on the clicked data point"""
-    if clickdata is not None:
+    if storedflag == False:
+        return dash.no_update
+    dr = get_data_from_pickle_session(sessionid)
+    if clickdata is not None and storedflag:
         # I don't know, why I need this
         import json
+
         clickeddict = json.loads(json.dumps(clickdata))
-        clicked_file=clickeddict["points"][0]["customdata"][0]
-        clickedseries=dr[dr["dateiname"]==clicked_file].iloc[0]
-        clickedseries=clickedseries.drop(["route","route_inter"])
+        clicked_file = clickeddict["points"][0]["customdata"][0]
+        clickedseries = dr[dr["dateiname"] == clicked_file].iloc[0]
+        clickedseries = clickedseries.drop(["route", "route_inter"])
         return "\n".join(f"{clickedseries}".split("\n")[0:-1])
     else:
         return "Click on a data point to show filename and infos"

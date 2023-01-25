@@ -34,19 +34,23 @@ def interpolieren(r: list) -> list:
     return points
 
 
-def read_gpx_file(f: Path) -> dict:
+def read_gpx_file(f: Path, filehandle=None) -> dict:
     """read one gpxfile"""
     p = {}
     p["dateiname"] = f.name
     print(f"Auf geht's für Dateiname {f}")
-    with open(f) as fh:
+    if filehandle is None:
+        with open(f) as fh:
+            g = gpxpy.parse(fh)
+    else:
         g = gpxpy.parse(fh)
     p["strecke"] = gpxpy.gpx.GPX.length_3d(g)
     p["datum"] = g.get_time_bounds().start_time.date()
+    p["startzeit"] = g.get_time_bounds().start_time.time()
     p["monat"] = p["datum"].month
     p["wochentag"] = p["datum"].strftime("%A")
     p["jahreszeit"] = season_of_date(p["datum"])
-    p["dauer"] = gpxpy.gpx.GPX.get_duration(g)/60
+    p["dauer"] = gpxpy.gpx.GPX.get_duration(g) / 60
     p["keywords"] = "" if g.keywords is None else g.keywords
     if f.name == "20221013T010322000.gpx":
         p["keywords"] = "heim"
@@ -84,7 +88,7 @@ def read_gpx_file(f: Path) -> dict:
     return p
 
 
-def read_gpx_file_list(filelist: list) -> pd.DataFrame:
+def read_gpx_file_list(filelist: list, delete: bool = False) -> pd.DataFrame:
     """reads gpx files from a file list"""
     print(f"read_gpx_file_list: {len(filelist)} Dateien lesen")
     r = []
@@ -92,6 +96,8 @@ def read_gpx_file_list(filelist: list) -> pd.DataFrame:
         if not str(f).endswith("gpx"):
             continue
         p = read_gpx_file(f)
+        if delete:
+            f.unlink()
         r.append(p)
     return pd.DataFrame(r)
 
@@ -102,29 +108,34 @@ def read_gpx_from_folder(infolder: str) -> pd.DataFrame:
 
 
 def update_pickle_from_list(
-    filelist: list, mypickle: str = "pickles/df.pickle"
+    filelist: list, mypickle: str = "pickles/df.pickle", delete: bool = False
 ) -> tuple[pd.DataFrame, bool]:
     """update a pickle file of gpx data with a list of gpx files"""
     if not Path(mypickle).is_file():
         print(f"update_pickle_from_list: {mypickle} gibt es noch nicht")
-        d= pd.DataFrame()
+        d = pd.DataFrame()
         fl = filelist
     else:
         with open(mypickle, "rb") as f:
             d = pickle.load(f)
         fl = [f for f in filelist if f.name not in list(d["dateiname"])]
-    print(f"update_pickle_from_list: {len(fl)} von {len(filelist)} müssen noch eingelesen werden")
+    print(
+        f"update_pickle_from_list: {len(fl)} von {len(filelist)} müssen noch eingelesen werden"
+    )
     updated = len(fl) > 0
     if updated:
-        d = pd.concat([d, read_gpx_file_list(fl)], axis=0)
+        d = pd.concat([d, read_gpx_file_list(fl, delete=delete)], axis=0)
         with open(mypickle, "wb") as f:
             pickle.dump(d, f)
     return d, updated
 
+
 def update_pickle_from_folder(
-    infolder: str, mypickle: str = "pickles/df.pickle"
+    infolder: str, mypickle: str = "pickles/df.pickle", delete: bool = False
 ) -> tuple[pd.DataFrame, bool]:
     """update a pickle file of gpx data with a folder containing gpx files"""
     return update_pickle_from_list(
-        getfilelist(infolder, suffix="gpx", withpath=True), mypickle=mypickle
+        getfilelist(infolder, suffix="gpx", withpath=True),
+        mypickle=mypickle,
+        delete=delete,
     )
