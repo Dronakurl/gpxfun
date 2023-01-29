@@ -2,28 +2,26 @@
 A dash app to visualize the results
 """
 # from dash import dcc, html, Dash, Output, Input, State, ctx, MATCH, ALL, dash_table
-from dash_extensions.enrich import (
-    ctx,
-    dcc,
-    html,
-    Dash,
-    Output,
-    Input,
-    State,
-    ServersideOutput,
-)
-import dash_bootstrap_components as dbc
-import dash
-import pickle
-import re
 import base64
 import io
-import uuid
-import threading
+import json
 from pathlib import Path
+import pickle
+import re
+import threading
+from typing import Tuple
+import uuid
+
+from dash import Dash, Input, Output, State, ctx, dcc, html, no_update
+import dash_bootstrap_components as dbc
+import pandas as pd
+
+from calc_dist_matrix import mae, update_dist_matrix
+from cluster_it import cluster_all
+from infer_start_end import infer_start_end
+from parse_gpx import update_pickle_from_folder
 from plots import plotaroute, violin
 from utilities import getfilelist
-from read_gpx_from_folder import update_pickle_from_list, update_pickle_from_folder
 
 dbc_css = "https://cdn.jsdelivr.net/gh/AnnMarieW/dash-bootstrap-templates/dbc.css"
 dashapp = Dash(__name__, external_stylesheets=[dbc.themes.SLATE, dbc_css])
@@ -34,7 +32,7 @@ header = html.H4(
     style={"margin-top": "5px"}
     # className="bg-primary text-white p-2 mb-2 text-center",
 )
-upload = dcc.Upload(
+uploadfield = dcc.Upload(
     id="upload-data",
     children=html.Div(["Drag and Drop or ", html.A("Select Files")]),
     multiple=True,
@@ -59,13 +57,18 @@ progessbar = dbc.Progress(value=25, id="progressbar")
 loadcard = dbc.Card(
     [
         dbc.CardHeader("Upload data from gpx files"),
-        dbc.CardBody([upload, progessbar, load_textarea]),
+        dbc.CardBody([uploadfield, progessbar, load_textarea]),
     ]
 )
-loadstuff = dbc.Tab(loadcard, disabled=False, label="Load")
+loadstuff = dbc.Tab(loadcard, disabled=False, label="Load", tab_id="loadstuff")
 
 showmaps = dbc.Tab(
-    dbc.Card([dbc.CardHeader("Map of important clusters"), dbc.CardBody(id="mapplot")]),
+    dbc.Card(
+        [
+            dbc.CardHeader("Map of important clusters"),
+            dbc.CardBody(dcc.Graph(id="mapplot")),
+        ]
+    ),
     label="Clusters",
 )
 
@@ -108,15 +111,55 @@ violins = dbc.Tab(
     tab_id="violintab",
 )
 
-tabs = dbc.Tabs([loadstuff, showmaps, violins], active_tab="violintab")
 
+clusterinfo = dcc.Textarea(
+    id="clusterinfo",
+    value="",
+    readOnly=True,
+    rows=18,
+    style={"width": "100%", "resize": "none", "padding": "5px"},
+)
+clusterpoints = [
+    dbc.Row(
+        [
+            dbc.Col(dcc.Graph(id="clustergraph1", style={"height": "200px"}), width=6),
+            dbc.Col(dcc.Graph(id="clustergraph2", style={"height": "200px"}), width=6),
+        ],
+        className="h-50",
+        # style={"background-color":"red"}
+    ),
+    dbc.Row(
+        [
+            dbc.Col(dcc.Graph(id="clustergraph3", style={"height": "200px"}), width=6),
+            dbc.Col(dcc.Graph(id="clustergraph4", style={"height": "200px"}), width=6),
+        ],
+        className="h-50",
+        # style={"background-color":"green"}
+    ),
+]
 
-def get_data_from_pickle_session(sessionid):
-    picklefn = Path("sessions") / sessionid / "df.pickle"
-    if not picklefn.is_file():
-        return False
-    with open(picklefn, "rb") as f:
-        return pickle.load(f)
+clusterbody = dbc.Row(
+    [
+        dbc.Col(
+            clusterinfo,
+            width=3,
+            # style={"background-color": "blue"}
+        ),
+        dbc.Col(clusterpoints, width=9),
+    ]
+)
+clustertab = dbc.Tab(
+    dbc.Card(
+        [
+            dbc.CardHeader("Determine start end points and common routes"),
+            dbc.CardBody(clusterbody),
+        ]
+    ),
+    label="Cluster routes",
+    tab_id="clustertab",
+)
+
+tabs = dbc.Tabs([loadstuff, clustertab, showmaps, violins], active_tab="loadstuff")
 
 
 def serve_layout():
@@ -155,7 +198,8 @@ def update_progessbar(n_intervals, sessionid, numberoffiles):
     if ctx.triggered_id == None or numberoffiles < 1:
         return (0, False)
     n = len(getfilelist(Path("sessions") / sessionid, "gpx"))
-    storedflag = (n==0)
+    storedflag = n == 0
+    # check if the parsing thread is finished, otherwise, remain in state "not stored"
     for thread in threading.enumerate():
         print(f"update_progessbar({sessionid}): thread.names : {thread.name}")
         if thread.name == "read" and thread.is_alive():
@@ -167,6 +211,41 @@ def update_progessbar(n_intervals, sessionid, numberoffiles):
     return (percentage, storedflag)
 
 
+def parse_and_cluster(
+    infolder: str,
+    mypickle: Path = Path("pickles/df.pickle"),
+    delete: bool = False,
+):
+    df, updated = update_pickle_from_folder(
+        infolder=infolder, mypickle=mypickle, delete=delete
+    )
+    df, most_imp_clusters = infer_start_end(df)
+    with open(Path(mypickle).parents[0] / "most_imp_clusters.pickle", "wb") as f:
+        pickle.dump(most_imp_clusters, f)
+    # distance matrix is generated, if not already stored in a pickle
+    dists = update_dist_matrix(
+        df,
+        mypickle=Path(mypickle).parents[0] / "dists.pickle",
+        updated=updated,
+        simmeasure="mae",
+    )
+    # Apply Cluster
+    df = cluster_all(df, dists)
+    with open(mypickle, "wb") as f:
+        pickle.dump(df, f)
+
+
+def get_data_from_pickle_session(sessionid: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    picklefn = Path("sessions") / sessionid / "df.pickle"
+    if not picklefn.is_file():
+        raise ValueError(f"pickle file {picklefn} doesn't exist!") 
+    with open(picklefn, "rb") as f:
+        df = pickle.load(f)
+    with open(Path("sessions") / sessionid / "most_imp_clusters.pickle", "rb") as f:
+        most_imp_clusters = pickle.load(f)
+    return df, most_imp_clusters
+
+
 @dashapp.callback(
     Output("numberoffiles", "data"),
     Input("upload-data", "contents"),
@@ -175,6 +254,7 @@ def update_progessbar(n_intervals, sessionid, numberoffiles):
     prevent_initial_call=True,
 )
 def upload(contents, filenames, sessionid):
+    """upload gpx data to session folder and start parsing thread"""
     if ctx.triggered_id == None:
         return
     # create sessionid folder
@@ -183,16 +263,14 @@ def upload(contents, filenames, sessionid):
     for ii in range(len(contents)):
         cc = contents[ii]
         filename = filenames[ii]
-        content_type, content_string = cc.split(",")
+        _, content_string = cc.split(",")
         decoded = base64.b64decode(content_string)
         strdata = decoded.decode("utf-8")
-        # f=io.StringIO(decoded.decode('utf-8'))
         with open(Path("sessions") / sessionid / filename, "w") as f:
             f.write(strdata)
     print(f"upload({sessionid}): number of files = {len(contents)}")
-    """ Parse the gpxfiles in the session folder """
     mythread = threading.Thread(
-        target=update_pickle_from_folder,
+        target=parse_and_cluster,
         name="read",
         kwargs={
             "infolder": Path("sessions") / sessionid,
@@ -205,7 +283,8 @@ def upload(contents, filenames, sessionid):
 
 
 @dashapp.callback(
-    Output("mapplot", "children"),
+    Output("mapplot", "figure"),
+    Output("clusterinfo", "value"),
     Input("storedflag", "data"),
     State("sessionid", "data"),
     prevent_initial_call=True,
@@ -213,55 +292,55 @@ def upload(contents, filenames, sessionid):
 def showmap(storedflag, sessionid):
     """Update the map with clusters"""
     if storedflag == False:
-        return dash.no_update
-    dr = get_data_from_pickle_session(sessionid)
+        return no_update
+    dr, most_imp_clusters = get_data_from_pickle_session(sessionid)
+    if type(dr) != pd.DataFrame:
+        return no_update
     fig = plotaroute(
         dr,
         groupfield="cluster",
         title=None,
     )
-    return [dcc.Graph(figure=fig)]
+    return fig, print(most_imp_clusters)
 
 
-@dashapp.callback(
-    Output("violinplot", "figure"),
-    Input("violinfactor", "value"),
-    Input("storedflag", "data"),
-    State("sessionid", "data"),
-    prevent_initial_call=True,
-)
-def showhists(violinfactor, storedflag, sessionid):
-    """Update the histogram or violin plots"""
-    if storedflag == False:
-        return dash.no_update
-    dr = get_data_from_pickle_session(sessionid)
-    fig = violin(dr, violinfactor)
-    return fig
+# @dashapp.callback(
+#     Output("violinplot", "figure"),
+#     Input("violinfactor", "value"),
+#     Input("storedflag", "data"),
+#     State("sessionid", "data"),
+#     prevent_initial_call=True,
+# )
+# def showhists(violinfactor, storedflag, sessionid):
+#     """Update the histogram or violin plots"""
+#     if storedflag == False:
+#         return no_update
+#     dr = get_data_from_pickle_session(sessionid)
+#     fig = violin(dr, violinfactor)
+#     return fig
 
 
-@dashapp.callback(
-    Output("violinfactor_selected_file_txt", "value"),
-    Input("violinplot", "clickData"),
-    Input("storedflag", "data"),
-    State("sessionid", "data"),
-    prevent_initial_call=True,
-)
-def clickondata(clickdata, storedflag, sessionid):
-    """Show information on the clicked data point"""
-    if storedflag == False:
-        return dash.no_update
-    dr = get_data_from_pickle_session(sessionid)
-    if clickdata is not None and storedflag:
-        # I don't know, why I need this
-        import json
-
-        clickeddict = json.loads(json.dumps(clickdata))
-        clicked_file = clickeddict["points"][0]["customdata"][0]
-        clickedseries = dr[dr["dateiname"] == clicked_file].iloc[0]
-        clickedseries = clickedseries.drop(["route", "route_inter"])
-        return "\n".join(f"{clickedseries}".split("\n")[0:-1])
-    else:
-        return "Click on a data point to show filename and infos"
+# @dashapp.callback(
+#     Output("violinfactor_selected_file_txt", "value"),
+#     Input("violinplot", "clickData"),
+#     Input("storedflag", "data"),
+#     State("sessionid", "data"),
+#     prevent_initial_call=True,
+# )
+# def clickondata(clickdata, storedflag, sessionid):
+#     """Show information on the clicked data point"""
+#     if storedflag == False:
+#         return no_update
+#     dr = get_data_from_pickle_session(sessionid)
+#     if clickdata is not None and storedflag:
+#         # I don't know, why I need this, but the given clickdata is not a proper dict at first
+#         clickeddict = json.loads(json.dumps(clickdata))
+#         clicked_file = clickeddict["points"][0]["customdata"][0]
+#         clickedseries = dr[dr["dateiname"] == clicked_file].iloc[0]
+#         clickedseries = clickedseries.drop(["route", "route_inter"])
+#         return "\n".join(f"{clickedseries}".split("\n")[0:-1])
+#     else:
+#         return "Click on a data point to show filename and infos"
 
 
 app = dashapp.server

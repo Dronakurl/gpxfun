@@ -53,9 +53,9 @@ def cluster_all(d, dists):
     """Cluster routes grouped by custom locations and write to disk"""
     d["cluster"] = ""
     d.index = d.dateiname
-    for a in ["arbeit", "heim"]:
+    for a in list(d.startendcluster.cat.categories):
         dfcluster = calc_cluster_from_dist(
-            dists[a], dists[a + "_dateinamen"], clusterlabel=a
+            dists[a], dists[a + "_dateinamen"], clusterlabel=str(a)
         )
         # dfcluster = cluster_it( dists[a], dists[a + "_dateinamen"], clusterlabel=a, min_cluster_size=3)
         d.update(dfcluster, join="left")
@@ -94,7 +94,3 @@ def cluster_it(
     return dfcluster
 
 
-# dateinamen=dists["arbeit_dateinamen"]
-# distm=dists["arbeit"]
-# clusterlabel="arbeit"
-# min_cluster_size=3

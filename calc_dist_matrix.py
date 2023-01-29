@@ -34,7 +34,7 @@ def euclidean(x, y):
 
 def calc_dist_matrix(
     df: pd.DataFrame,
-    simmeasure=area_comp,
+    simmeasure="mae",
     compvar: str = "route_inter",
 ):
     # Um Fehler zu erkennen ein blöder Wert
@@ -51,18 +51,22 @@ def calc_dist_matrix(
 
 
 def update_dist_matrix(
-    d: pd.DataFrame, mypickle: str, updated: bool = True, simmeasure=mae
-):
-    if Path(mypickle).is_file() and not updated:
+        d: pd.DataFrame, mypickle: Path, updated: bool = True, simmeasure: str ="mae"
+) -> dict:
+    if mypickle.is_file() and not updated:
         with open(mypickle, "rb") as f:
             dists = pickle.load(f)
     else:
         dists = {}
-        for a in ["arbeit", "heim"]:
-            print(f"Berechne die Abstandsmatrix für {a}")
-            dsub = d[d[a]]
+        startendclusters=list(d.startendcluster.cat.categories)
+        for a in startendclusters:
+            print(f"update_dist_matrix: calculate distance matrix for routes in startendcluster {a}")
+            dsub = d[d.startendcluster==a]
             dists[a + "_dateinamen"] = list(dsub.loc[:, "dateiname"])
-            dists[a] = calc_dist_matrix(dsub, simmeasure=simmeasure)
+            smeasures = {"mae": mae, "mse": mse, "area_comp": area_comp}
+            if smeasures.get(simmeasure) is None:
+                raise ValueError(f"update_dist_matrix: simmeasure {simmeasure} unknown")
+            dists[a] = calc_dist_matrix(dsub, simmeasure=smeasures[simmeasure])
         with open(mypickle, "wb") as f:
             pickle.dump(dists, f)
     return dists

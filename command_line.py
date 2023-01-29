@@ -1,17 +1,22 @@
 """
 A script to prepare the data and test plots for gpx analysis
 """
-import pickle
+from pathlib import Path
 import re
+import sys
+
 import numpy as np
 import pandas as pd
 import plotly.express as px
+from sklearn import linear_model
+from sklearn.model_selection import KFold, cross_val_score
+
 from calc_dist_matrix import calc_dist_matrix, euclidean, mae, update_dist_matrix
 from cluster_it import cluster_all
+from parse_gpx import update_pickle_from_folder
 from plausi_single_route import plausi_single_route
 from plots import plotaroute
 from positions_from_distm import calculate_positions
-from read_gpx_from_folder import update_pickle_from_folder
 
 # Read the gpx data from a folder. Data is stored in y pickle, so that
 # it does not need to be reloaded every time.
@@ -22,7 +27,7 @@ d, updated = update_pickle_from_folder(
 
 # distance matrix is generated, if not already stored in a pickle
 dists = update_dist_matrix(
-    d, mypickle="pickles/dists.pickle", updated=updated, simmeasure=mae
+    d, mypickle=Path("pickles/dists.pickle"), updated=updated, simmeasure=mae
 )
 
 # Pick a random route and visualize the nearest neighbors
@@ -31,8 +36,8 @@ dists = update_dist_matrix(
 # Apply Cluster
 d = cluster_all(d, dists)
 
-import sys
-print("gpechse.py: exit with sys.exit. More nice code after this for interactive mode")
+
+print("command_line.py: exit with sys.exit. More code after this for use in a REPL mode")
 sys.exit(0)
 
 # get the names of the biggest clusters
@@ -94,8 +99,7 @@ ds=dr[["cluster","dauer"]]
 X=ds.drop("dauer",axis=1)
 X=pd.get_dummies(X)
 y=ds[["dauer"]]
-from sklearn.model_selection import KFold, cross_val_score
-from sklearn import linear_model
+
 logr = linear_model.LinearRegression()
 logr.fit(X,y)
 logr.coef_

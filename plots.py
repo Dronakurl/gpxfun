@@ -1,15 +1,18 @@
 """
 Plot functions
 """
+import calendar
+from typing import Optional
+
+from dash_bootstrap_templates import load_figure_template
 import pandas as pd
 import plotly.express as px
-import calendar
-from dash_bootstrap_templates import load_figure_template
+import plotly.express as px
 
 
 def prepareplotdata(
     route,
-    groupfield: str = None,
+    groupfield: Optional[str] = None,
     routevar: str = "route_inter",
 ):
     """Plot one or more routes"""
@@ -34,15 +37,16 @@ def prepareplotdata(
 def plotaroute(
     route,
     zoom: int = 13,
-    groupfield: str = None,
+    groupfield: Optional[str] = None,
     plottype: str = "map",
     routevar: str = "route_inter",
-    title: str = "",
+    title: Optional[str] = "",
+    specialpoints: Optional[list] = None
 ):
     """
     plot a given route from a given route
     """
-    y = prepareplotdata(route, groupfield, routevar="route_inter")
+    y = prepareplotdata(route, groupfield, routevar=routevar)
     if plottype == "map":
         load_figure_template("slate")
         fig = px.scatter_mapbox(
@@ -59,8 +63,12 @@ def plotaroute(
         fig.update_layout(margin={"r": 0, "t": 20, "l": 0, "b": 0})
     elif plottype == "line":
         fig = px.line(y, y="lat", color=groupfield)
+    else:
+        fig = None
     return fig
-
+# with open("pickles/df.bk3.pickle","rb") as f:
+#     d=pickle.load(f)
+# plotaroute(d,groupfield="cluster")
 
 def violin(dr: pd.DataFrame, 
            cat_variable: str = "wochentag"):
