@@ -38,6 +38,12 @@ def infer_start_end(
     d["startendcluster"] = pd.Series(cluster_labels)
     most_imp_clust = (
         d.startendcluster.value_counts()
+    )
+    # at least 3 routes per cluster
+    most_imp_clust=most_imp_clust[most_imp_clust>2]
+    # a maximum of 4 clusters is chosen
+    most_imp_clust = (
+        most_imp_clust
         .head(4)
         .reset_index()
         .drop("startendcluster", axis=1)

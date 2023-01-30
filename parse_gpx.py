@@ -12,10 +12,11 @@ import pandas as pd
 from scipy.interpolate import UnivariateSpline, interp1d
 
 from utilities import getfilelist, season_of_date
+from tqdm import tqdm
 
 
 def interpolateroutes(r: list) -> list:
-    """ interpolates and smoothes a route """
+    """interpolates and smoothes a route"""
     points = np.array([np.array(xx) for xx in r])
     _, idx = np.unique(points, axis=0, return_index=True)
     points = points[np.sort(idx)]
@@ -40,7 +41,6 @@ def read_gpx_file(f: Path, filehandle=None) -> dict:
     """read one gpxfile"""
     p = {}
     p["dateiname"] = f.name
-    print(f"Auf geht's für Dateiname {f}")
     if filehandle is None:
         with open(f) as fh:
             g = gpxpy.parse(fh)
@@ -88,21 +88,21 @@ def read_gpx_file(f: Path, filehandle=None) -> dict:
     )
     p["route_inter"] = interpolateroutes(route)
     return p
+
+
 # p=read_gpx_file(Path("data/20221013T010322000.gpx"))
 
 
-def read_gpx_file_list(
-    filelist: list, delete: bool = False, counter: list = []
-) -> pd.DataFrame:
-    """reads gpx files from a file list"""
+def read_gpx_file_list(filelist: list, delete: bool = False) -> pd.DataFrame:
+    """
+    - Reads gpx files from a file list 
+    - Deletes the files if delete option is set
+    - Returns a result DataFrame with information for each GPX file
+    """
     print(f"read_gpx_file_list: {len(filelist)} Dateien lesen")
     r = []
-    if len(counter) > 0:
-        k = 0
-    for f in filelist:
-        if len(counter) > 0:
-            k = k + 1
-            counter[0] = k
+    for f in (pbar:=tqdm(filelist, colour="#ff00ff", desc="read GPX files")):
+        pbar.set_postfix_str(f.name[0:20])
         if not str(f).endswith("gpx"):
             continue
         p = read_gpx_file(f)
@@ -119,7 +119,6 @@ def read_gpx_file_list(
         }
     )
     return df
-# d = read_gpx_file_list([Path("data/20221013T010322000.gpx")])
 
 
 def read_gpx_from_folder(infolder: str) -> pd.DataFrame:
@@ -131,7 +130,6 @@ def update_pickle_from_list(
     filelist: list,
     mypickle: Path = Path("pickles/df.pickle"),
     delete: bool = False,
-    counter: list = [],
 ) -> tuple[pd.DataFrame, bool]:
     """update a pickle file of gpx data with a list of gpx files"""
     if not Path(mypickle).is_file():
@@ -148,7 +146,7 @@ def update_pickle_from_list(
     updated = len(fl) > 0
     if updated:
         d = pd.concat(
-            [d, read_gpx_file_list(fl, delete=delete, counter=counter)], axis=0
+            [d, read_gpx_file_list(fl, delete=delete)], axis=0
         )
         with open(mypickle, "wb") as f:
             pickle.dump(d, f)
@@ -159,12 +157,10 @@ def update_pickle_from_folder(
     infolder: str,
     mypickle: Path = Path("pickles/df.pickle"),
     delete: bool = False,
-    counter: list = [],
 ) -> tuple[pd.DataFrame, bool]:
     """update a pickle file of gpx data with a folder containing gpx files"""
     return update_pickle_from_list(
         getfilelist(infolder, suffix="gpx", withpath=True),
         mypickle=mypickle,
         delete=delete,
-        counter=counter,
     )

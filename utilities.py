@@ -1,6 +1,6 @@
-'''
+"""
 Utilities that can be reused some day
-'''
+"""
 import datetime
 from pathlib import Path
 
@@ -8,13 +8,20 @@ import pandas as pd
 
 
 def getfilelist(mypath: str, suffix: str, withpath: bool = False) -> list:
-    """Finde in einem Ordner alle Dateien mit einer bestimmten Endung"""
-    p = Path(mypath).glob('**/*.'+suffix)
+    """ Find all files in folders and subfolders given a specific extension """
+    p = Path(mypath).glob("**/*." + suffix)
     l = [x for x in p if x.is_file()]
-    if withpath==False:
+    if withpath == False:
         l = [f.name for f in l]
     return l
 
+def getdirlist(mypath: str, withpath: bool = False) -> list:
+    """ Find all subfolders of a folder """
+    p = Path(mypath).glob("*")
+    l = [x for x in p if x.is_dir()]
+    if withpath == False:
+        l = [f.name for f in l]
+    return l
 
 def season_of_date(date: datetime.date) -> str:
     """Zu einem Datumg die Jahreszeit zuordnen"""
@@ -38,3 +45,13 @@ def season_of_date(date: datetime.date) -> str:
         return "autumn"
     else:
         return "winter"
+
+
+def convert_bytes(num):
+    """
+    this function will convert bytes to MB.... GB... etc
+    """
+    for x in ["bytes", "KB", "MB", "GB", "TB"]:
+        if num < 1024.0:
+            return "%3.1f %s" % (num, x)
+        num /= 1024.0

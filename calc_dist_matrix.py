@@ -8,6 +8,7 @@ import pickle
 import numpy as np
 import pandas as pd
 import similaritymeasures
+from tqdm import tqdm
 
 
 def area_comp(x: list, y: list):
@@ -34,40 +35,42 @@ def euclidean(x, y):
 
 def calc_dist_matrix(
     df: pd.DataFrame,
-    simmeasure="mae",
+    simmeasure: str = "mae",
     compvar: str = "route_inter",
-):
-    # Um Fehler zu erkennen ein blöder Wert
-    dists = np.full((len(df), len(df)), 234312992.2132)
-    for xi in range(len(df)):
-        for yi in range(len(df)):
-            if yi > xi:
-                dists[xi, yi] = simmeasure(df.iloc[xi][compvar], df.iloc[yi][compvar])
-                dists[yi, xi] = dists[xi, yi]
-            elif yi == xi:
-                dists[xi, yi] = 0
-            print(f"xi={xi} yi={yi}: {dists[xi,yi]}")
-    return dists
+) -> np.ndarray:
+    distance_mat = np.full((len(df), len(df)), -9999.0)
+    smeasures = {"mae": mae, "mse": mse, "area_comp": area_comp}
+    sim_fun = smeasures.get(simmeasure)
+    if sim_fun is None:
+        raise ValueError(f"calc_dist_matrix: simmeasure {simmeasure} unknown")
+    matrix_indices = [(xi, yi) for xi in range(len(df)) for yi in range(len(df))]
+    for mindex in tqdm(matrix_indices, colour="#00ffff", desc="calc dist matrix"):
+        xi, yi = mindex
+        if yi > xi:
+            distance_mat[xi, yi] = sim_fun(df.iloc[xi][compvar], df.iloc[yi][compvar])
+            distance_mat[yi, xi] = distance_mat[xi, yi]
+        elif yi == xi:
+            distance_mat[xi, yi] = 0
+    return distance_mat
 
 
 def update_dist_matrix(
-        d: pd.DataFrame, mypickle: Path, updated: bool = True, simmeasure: str ="mae"
+    d: pd.DataFrame, mypickle: Path, updated: bool = True, simmeasure: str = "mae"
 ) -> dict:
+    ''' 
+    Look for the given pickle file and update it with the distance
+    matrix if necessary, i.e. if the updated flag is set
+    '''
     if mypickle.is_file() and not updated:
         with open(mypickle, "rb") as f:
-            dists = pickle.load(f)
-    else:
-        dists = {}
-        startendclusters=list(d.startendcluster.cat.categories)
-        for a in startendclusters:
-            print(f"update_dist_matrix: calculate distance matrix for routes in startendcluster {a}")
-            dsub = d[d.startendcluster==a]
-            dists[a + "_dateinamen"] = list(dsub.loc[:, "dateiname"])
-            smeasures = {"mae": mae, "mse": mse, "area_comp": area_comp}
-            if smeasures.get(simmeasure) is None:
-                raise ValueError(f"update_dist_matrix: simmeasure {simmeasure} unknown")
-            dists[a] = calc_dist_matrix(dsub, simmeasure=smeasures[simmeasure])
-        with open(mypickle, "wb") as f:
-            pickle.dump(dists, f)
+            return pickle.load(f)
+    dists = {}
+    startendclusters = list(d.startendcluster.cat.categories)
+    for a in startendclusters:
+        print(f"update_dist_matrix: distance matrix for routes in startendcluster {a}")
+        dsub = d[d.startendcluster == a]
+        dists[str(a) + "_dateinamen"] = list(dsub.loc[:, "dateiname"])
+        dists[a] = calc_dist_matrix(dsub, simmeasure=simmeasure)
+    with open(mypickle, "wb") as f:
+        pickle.dump(dists, f)
     return dists
-

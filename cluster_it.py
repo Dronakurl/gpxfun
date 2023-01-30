@@ -17,10 +17,10 @@ def calc_cluster_from_dist(distm, indices: list, clusterlabel: str = "cluster"):
     distm must be of shape (len(indices),len(indices))
     cluster labels get suffix given in clusterlabel
     """
-    X = squareform(distm)
-    Z = average(X)
-    # p=fcluster(Z,7,criterion="maxclust")
-    cluster_labels = fcluster(Z, np.quantile(X, 0.3), criterion="distance")
+    # confusing: squareform transforms to upperdiagmatrix when called on a square matrix
+    updiagm = squareform(distm)
+    Z = average(updiagm)
+    cluster_labels = fcluster(Z, np.quantile(updiagm, 0.3), criterion="distance")
     # reorder cluster labels according to size of cluster
     dfcluster = pd.DataFrame(
         zip(indices, cluster_labels),
@@ -39,31 +39,43 @@ def calc_cluster_from_dist(distm, indices: list, clusterlabel: str = "cluster"):
     dfcluster = (
         pd.merge(dfcluster, x, on="cluster")
         .drop("cluster", axis=1)
-        .rename({"new": "cluster"},axis=1)
+        .rename({"new": "cluster"}, axis=1)
     )
     dfcluster.index = dfcluster.dateiname
-    labls=dfcluster.cluster.unique()
-    print(
-        f"For {clusterlabel}, {len(labls)} Clusters: {labls}"
-    )
+    # labls = dfcluster.cluster.unique()
+    # print(f"For {clusterlabel}, {len(labls)} Clusters: {labls}")
     return dfcluster
 
 
-def cluster_all(d, dists):
+def cluster_all(
+    d: pd.DataFrame,
+    dists: dict,
+    most_imp_clusters: pd.DataFrame,
+    writetopickle: bool = True,
+):
     """Cluster routes grouped by custom locations and write to disk"""
     d["cluster"] = ""
     d.index = d.dateiname
-    for a in list(d.startendcluster.cat.categories):
+    for a in list(most_imp_clusters.startendcluster.cat.categories):
         dfcluster = calc_cluster_from_dist(
-            dists[a], dists[a + "_dateinamen"], clusterlabel=str(a)
+            dists[a], dists[str(a) + "_dateinamen"], clusterlabel=str(a)
         )
-        # dfcluster = cluster_it( dists[a], dists[a + "_dateinamen"], clusterlabel=a, min_cluster_size=3)
         d.update(dfcluster, join="left")
     d = d.reset_index(drop=True)
-    print(d.groupby("cluster").size())
-    with open("pickles/df.pickle", "wb") as f:
-        pickle.dump(d, f)
-    return d
+    clustercombis = (
+        d.groupby(["startendcluster", "cluster"])["dateiname"].count().reset_index()
+    )
+    clustercombis = clustercombis[clustercombis.dateiname > 0]
+    clustercombis = most_imp_clusters.merge(clustercombis,on="startendcluster")
+    clustercombis.startendcluster.astype("category")
+    clustercombis.cluster.astype("category")
+    d["cluster"] = d.cluster.astype("category")
+    if writetopickle:
+        with open("pickles/df.pickle", "wb") as f:
+            pickle.dump(d, f)
+        with open("pickles/most_imp_clusters.pickle", "wb") as f:
+            pickle.dump(d, f)
+    return d, clustercombis
 
 
 def cluster_it(
@@ -78,19 +90,17 @@ def cluster_it(
     clusterer = HDBSCAN(
         metric="precomputed",
         min_cluster_size=min_cluster_size,
-        algorithm="best", 
+        algorithm="best",
         approx_min_span_tree=False,
         allow_single_cluster=True,
     )
     cluster_labels = clusterer.fit_predict(distsm)
-    print(
-        f"Für {clusterlabel} habe ich folgende {len(list(set(cluster_labels)))} Cluster gefunden: {list(set(cluster_labels))}"
-    )
+    # print(
+    #     f"Für {clusterlabel} habe ich folgende {len(list(set(cluster_labels)))} Cluster gefunden: {list(set(cluster_labels))}"
+    # )
     dfcluster = pd.DataFrame(
         zip(dateinamen, [clusterlabel + "_" + str(x) for x in cluster_labels]),
         columns=["dateiname", "cluster"],
     )
     dfcluster.index = dfcluster.dateiname
     return dfcluster
-
-

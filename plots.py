@@ -41,7 +41,7 @@ def plotaroute(
     plottype: str = "map",
     routevar: str = "route_inter",
     title: Optional[str] = "",
-    specialpoints: Optional[list] = None
+    specialpoints: Optional[list] = None,
 ):
     """
     plot a given route from a given route
@@ -66,21 +66,20 @@ def plotaroute(
     else:
         fig = None
     return fig
-# with open("pickles/df.bk3.pickle","rb") as f:
-#     d=pickle.load(f)
-# plotaroute(d,groupfield="cluster")
 
-def violin(dr: pd.DataFrame, 
-           cat_variable: str = "wochentag"):
+
+def violin(dr: pd.DataFrame, cat_variable: str = "wochentag"):
     load_figure_template("slate")
-    if cat_variable=="cluster":
-        cat_order={"cluster": list(dr.cluster.drop_duplicates().sort_values())}
-    elif cat_variable=="wochentag":  
-        cat_order={"wochentag": list(calendar.day_name[0:5])}
-    elif cat_variable=="jahreszeit":
-        cat_order={"jahreszeit": ["spring","summer","autumn","winter"]}
+    if cat_variable == "cluster":
+        cat_order = {"cluster": list(dr.cluster.drop_duplicates().sort_values())}
+    elif cat_variable == "wochentag":
+        cat_order = {"wochentag": list(calendar.day_name[0:5])}
+    elif cat_variable == "jahreszeit":
+        cat_order = {"jahreszeit": ["spring", "summer", "autumn", "winter"]}
     else:
-        cat_order={cat_variable: list(dr[cat_variable].drop_duplicates().sort_values())}
+        cat_order = {
+            cat_variable: list(dr[cat_variable].drop_duplicates().sort_values())
+        }
     fig = px.violin(
         dr,
         y="dauer",
@@ -88,7 +87,7 @@ def violin(dr: pd.DataFrame,
         # color="wochentag",
         box=True,
         points="all",
-        hover_data=["cluster","dateiname"],
+        hover_data=["cluster", "dateiname"],
         category_orders=cat_order,
         labels={"jahreszeit": "Jahreszeit", "y": "Dauer"},
         template="slate",
@@ -96,11 +95,12 @@ def violin(dr: pd.DataFrame,
     fig.update_layout(
         bargap=0.2,
         xaxis_title="Cluster",
-        font=dict(family="Ubuntu, sans",size=14),
-        margin={"r": 0, "t": 0, "l": 0, "b": 0}
+        font=dict(family="Ubuntu, sans", size=14),
+        margin={"r": 0, "t": 0, "l": 0, "b": 0},
     )
     return fig
+
+
 # violin(dr,"wochentag")
 # violin(dr,"jahreszeit")
 # violin(dr,"cluster")
-
