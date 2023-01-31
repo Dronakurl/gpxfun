@@ -47,7 +47,7 @@ def get_loadstuff():
         id="load_textarea",
         value="",
         readOnly=True,
-        rows=7,
+        rows=3,
         style={
             "width": "100%",
             "resize": "none",
@@ -63,23 +63,12 @@ def get_loadstuff():
         color="#FF9800",
         style={"color": "black", "margin-bottom": "5px"},
     )
-    cluster_dropdown = dcc.Dropdown(
-        options={
-            "readdatafirst": "Load data first",
-        },
-        value="readdatafirst",
-        id="cluster_dropdown",
-        style={
-            "width": "100%",
-            "margin-bottom": "5px",
-        },
-        multi=True,
-    )
     startend_cluster_dropdown = dcc.Dropdown(
         options={
             "readdatafirst": "Load data first",
         },
-        value="readdatafirst",
+        # value=["readdatafirst"],
+        placeholder="select start/end combination",
         id="startend_cluster_dropdown",
         style={
             "width": "100%",
@@ -87,7 +76,18 @@ def get_loadstuff():
         },
         multi=True,
     )
-
+    cluster_dropdown = dcc.Dropdown(
+        options={
+            "readdatafirst": "Load data first",
+        },
+        placeholder="select type of route",
+        id="cluster_dropdown",
+        style={
+            "width": "100%",
+            "margin-bottom": "5px",
+        },
+        multi=True,
+    )
     opts = getsessionids()
     picksessionid = dcc.Dropdown(
         options=opts,
@@ -101,7 +101,7 @@ def get_loadstuff():
     dropdowncard = dbc.Card(
         [
             dbc.CardHeader("Select routes to analyze"),
-            dbc.CardBody([cluster_dropdown, startend_cluster_dropdown]),
+            dbc.CardBody([ startend_cluster_dropdown, cluster_dropdown,]),
         ]
     )
     loadcard = dbc.Card(
@@ -115,29 +115,12 @@ def get_loadstuff():
 
 
 def get_clustertab():
-    clusterinfo = dcc.Textarea(
-        id="clusterinfo",
-        value="",
-        readOnly=True,
-        rows=18,
-        style={"width": "100%", "resize": "none", "padding": "5px"},
-    )
     clustermap = dbc.Card(dcc.Graph(id="clustermap"), body=True)
-    clusterbody = dbc.Row(
-        [
-            dbc.Col(
-                [clusterinfo],
-                width=3,
-                # style={"background-color": "blue"}
-            ),
-            dbc.Col(clustermap, width=9),
-        ]
-    )
     return dbc.Tab(
         dbc.Card(
             [
                 dbc.CardHeader("Show common routes for common start/end points"),
-                dbc.CardBody(clusterbody),
+                dbc.CardBody(clustermap),
             ]
         ),
         label="Common routes ▶",

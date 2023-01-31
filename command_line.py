@@ -4,17 +4,14 @@ A script to prepare the data and test plots for gpx analysis
 from pathlib import Path
 import re
 import sys
-
 import numpy as np
 import pandas as pd
 import plotly.express as px
 from sklearn import linear_model
 from sklearn.model_selection import KFold, cross_val_score
-
 from calc_dist_matrix import calc_dist_matrix, euclidean, mae, update_dist_matrix
 from cluster_it import cluster_all
 from parse_gpx import update_pickle_from_folder
-from plausi_single_route import plausi_single_route
 from plots import plotaroute
 from positions_from_distm import calculate_positions
 

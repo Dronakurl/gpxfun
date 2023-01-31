@@ -178,7 +178,6 @@ def upload(contents, filenames, sessionid):
 
 @dashapp.callback(
     Output("clustermap", "figure"),
-    Output("clusterinfo", "value"),
     Input("storedflag", "data"),
     Input("cluster_dropdown", "value"),
     State("sessionid", "data"),
@@ -186,30 +185,42 @@ def upload(contents, filenames, sessionid):
 )
 def showmap(storedflag, clusters, sessionid):
     """Draw a map with the most common routes"""
-    print("CALLBACK showmap: "+ str(ctx.triggered_id))
-    if storedflag == False:
-        return no_update, no_update
+    print("CALLBACK showmap: "+ str(ctx.triggered_id) + " " + str(clusters))
+    if storedflag == False or clusters is None:
+        return no_update
     dr, most_imp_clusters = get_data_from_pickle_session(sessionid)
     dr = dr[dr.cluster.isin(clusters)]
+    if len(dr)<1:
+        return no_update
+    mics=most_imp_clusters
+    mics=mics[mics.cluster.isin(clusters)]
+    mics=mics.drop(["cluster","dateiname"],axis=1)
+    mics=mics.drop_duplicates()
+    points={}
+    points["start"] = list(zip(mics.start_lat,mics.start_lon))
+    points["end"]   = list(zip(mics.ende_lat,mics.ende_lon))
     fig = plotaroute(
         dr,
         groupfield="cluster",
+        zoom=-1,
         title=None,
+        specialpoints=points
     )
-    return fig, most_imp_clusters.to_string()
+    return fig
 
 
 @dashapp.callback(
     Output("violinplot", "figure"),
     Input("violinfactor", "value"),
     Input("storedflag", "data"),
+    Input("cluster_dropdown", "value"),
     State("sessionid", "data"),
     prevent_initial_call=True,
 )
-def showhists(violinfactor, storedflag, sessionid):
+def showhists(violinfactor, storedflag, clusters, sessionid):
     """Show plots to analyze the times"""
     print("CALLBACK showhists: "+ str(ctx.triggered_id))
-    if storedflag == False:
+    if storedflag == False or clusters is None:
         return no_update
     dr, _ = get_data_from_pickle_session(sessionid)
     dr = dr[dr.cluster.isin(clusters)]
@@ -227,11 +238,10 @@ def showhists(violinfactor, storedflag, sessionid):
 def clickondata(clickdata, storedflag, sessionid):
     """Show information on the clicked data point"""
     print("CALLBACK clickondata: "+ str(ctx.triggered_id))
-    if storedflag == False:
+    if storedflag == False or clusters is None:
         return no_update
     dr, _ = get_data_from_pickle_session(sessionid)
-    if clickdata is not None and storedflag:
-        import pdb; pdb.set_trace()
+    if clickdata is not None :
         # I don't know, why I need this, but the given clickdata is not a proper dict at first
         clickeddict = json.loads(json.dumps(clickdata))
         clicked_file = clickeddict["points"][0]["customdata"][0]
