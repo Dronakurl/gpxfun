@@ -4,13 +4,16 @@ A script to prepare the data and test plots for gpx analysis
 from pathlib import Path
 import re
 import sys
+
 import numpy as np
 import pandas as pd
 import plotly.express as px
 from sklearn import linear_model
 from sklearn.model_selection import KFold, cross_val_score
-from calc_dist_matrix import calc_dist_matrix, euclidean, mae, update_dist_matrix
+
+from calc_dist_matrix import calc_dist_matrix, euclidean, update_dist_matrix
 from cluster_it import cluster_all
+from infer_start_end import infer_start_end
 from parse_gpx import update_pickle_from_folder
 from plots import plotaroute
 from positions_from_distm import calculate_positions
@@ -19,22 +22,46 @@ from positions_from_distm import calculate_positions
 # it does not need to be reloaded every time.
 # New files are added to the data frame with
 d, updated = update_pickle_from_folder(
-    infolder="/home/konrad/gpxfun/data", mypickle="pickles/df.pickle"
+    infolder="/home/konrad/gpxfun/data", mypickle=Path("sessions/testcli/df.pickle")
 )
 
 # distance matrix is generated, if not already stored in a pickle
+d, most_imp_clusters = infer_start_end(d)
 dists = update_dist_matrix(
-    d, mypickle=Path("pickles/dists.pickle"), updated=updated, simmeasure=mae
+    d, mypickle=Path("sessions/testcli/dists.pickle"), updated=updated
 )
 
 # Pick a random route and visualize the nearest neighbors
 # plausi_single_route(d, dists, 35)
 
-# Apply Cluster
-d = cluster_all(d, dists)
+# Apply Cluster algorithm to get similar paths
+d , most_imp_clusters= cluster_all(d, dists, most_imp_clusters, writetopickle=False)
 
 
-print("command_line.py: exit with sys.exit. More code after this for use in a REPL mode")
+dr = d[d.startendcluster==0 ].copy()
+# exclude some strange outliers
+dr = dr[dr.dateiname != "20220920T075709000.gpx"]
+imp_clusters=("0_0","0_1","0_2")
+dr.cluster = dr.cluster.apply(lambda x: x if x in imp_clusters else "sonstige")
+ds = dr[["jahreszeit", "wochentag", "cluster", "dauer"]]
+ds = dr[["cluster", "dauer"]]
+X = ds.drop("dauer", axis=1)
+X = pd.get_dummies(X)
+y = ds[["dauer"]]
+
+logr = linear_model.LinearRegression()
+logr.fit(X, y)
+logr.coef_
+clf = linear_model.LinearRegression()
+k_folds = KFold(n_splits=5)
+scores = cross_val_score(clf, X, y, cv=k_folds)
+print("Cross Validation Scores: ", scores)
+print("Average CV Score: ", scores.mean())
+print("Number of CV Scores used in Average: ", len(scores))
+
+print(
+    "command_line.py: exit with sys.exit. More code after this for use in a REPL mode"
+)
 sys.exit(0)
 
 # get the names of the biggest clusters
@@ -44,7 +71,7 @@ imp_clusters = [x for x in imp_clusters if int(re.search("\D_(\d+)", x).group(1)
 
 # Display all routes in each cluster to see if clustering worked
 
-fig=plotaroute(
+fig = plotaroute(
     d[d.arbeit & d.cluster.isin(imp_clusters)],
     groupfield="cluster",
     title="Show all clusters for arbeit",
@@ -91,19 +118,18 @@ dr = d[d.arbeit].copy()
 dr = dr[dr.dateiname != "20220920T075709000.gpx"]
 dr.cluster = dr.cluster.apply(lambda x: x if x in imp_clusters else "sonstige")
 
-ds=dr[["jahreszeit","wochentag","cluster","dauer"]]
-ds=dr[["cluster","dauer"]]
-X=ds.drop("dauer",axis=1)
-X=pd.get_dummies(X)
-y=ds[["dauer"]]
+ds = dr[["jahreszeit", "wochentag", "cluster", "dauer"]]
+ds = dr[["cluster", "dauer"]]
+X = ds.drop("dauer", axis=1)
+X = pd.get_dummies(X)
+y = ds[["dauer"]]
 
 logr = linear_model.LinearRegression()
-logr.fit(X,y)
+logr.fit(X, y)
 logr.coef_
 clf = linear_model.LinearRegression()
-k_folds = KFold(n_splits = 5)
-scores = cross_val_score(clf, X, y, cv = k_folds)
+k_folds = KFold(n_splits=5)
+scores = cross_val_score(clf, X, y, cv=k_folds)
 print("Cross Validation Scores: ", scores)
 print("Average CV Score: ", scores.mean())
 print("Number of CV Scores used in Average: ", len(scores))
-

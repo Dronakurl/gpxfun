@@ -10,7 +10,6 @@ import json
 
 from dash import Dash, Input, Output, State, ctx, no_update
 import dash_bootstrap_components as dbc
-import pandas as pd
 from tqdm import tqdm
 
 from plots import plotaroute, violin
@@ -41,12 +40,14 @@ def update_startend_dropdown(storedflag, sessionid):
         most_imp_clusters = pickle.load(f)
     startendcluster_dropdown_opts = {}
     for cat in list(most_imp_clusters.startendcluster.cat.categories):
-        startendcluster_dropdown_opts[cat] = "Start/End-Combination" + str(cat)
+        startendcluster_dropdown_opts[cat] = "Start/end-combination " + str(cat)
+    # cluster_dropdown_opts["all"]="All start/end-combinations"
     return startendcluster_dropdown_opts, [0]
 
 
 @dashapp.callback(
     Output("cluster_dropdown", "options"),
+    Output("cluster_dropdown", "value"),
     Input("startend_cluster_dropdown", "value"),
     Input("storedflag", "data"),
     State("sessionid", "data"),
@@ -64,8 +65,9 @@ def update_cluster_dropdown(startendclusters, storedflag, sessionid):
     ].cluster
     cluster_dropdown_opts = {}
     for clu in list(clusters):
-        cluster_dropdown_opts[clu] = "Route" + str(clu)
-    return cluster_dropdown_opts
+        cluster_dropdown_opts[clu] = "Route " + str(clu)
+    # cluster_dropdown_opts["all"]="all routes"
+    return cluster_dropdown_opts, clusters
 
 
 @dashapp.callback(
@@ -184,7 +186,7 @@ def upload(contents, filenames, sessionid):
     prevent_initial_call=True,
 )
 def showmap(storedflag, clusters, sessionid):
-    """Draw a map with the most common routes"""
+    """ Draws a map with the most common routes"""
     print("CALLBACK showmap: "+ str(ctx.triggered_id) + " " + str(clusters))
     if storedflag == False or clusters is None:
         return no_update
@@ -231,11 +233,12 @@ def showhists(violinfactor, storedflag, clusters, sessionid):
 @dashapp.callback(
     Output("violinfactor_selected_file_txt", "value"),
     Input("violinplot", "clickData"),
+    Input("cluster_dropdown", "value"),
     State("storedflag", "data"),
     State("sessionid", "data"),
     prevent_initial_call=True,
 )
-def clickondata(clickdata, storedflag, sessionid):
+def clickondata(clickdata, clusters, storedflag, sessionid):
     """Show information on the clicked data point"""
     print("CALLBACK clickondata: "+ str(ctx.triggered_id))
     if storedflag == False or clusters is None:
@@ -246,16 +249,18 @@ def clickondata(clickdata, storedflag, sessionid):
         clickeddict = json.loads(json.dumps(clickdata))
         clicked_file = clickeddict["points"][0]["customdata"][0]
         clickedseries = dr[dr["dateiname"] == clicked_file].iloc[0]
-        clickedseries = clickedseries.drop(["route", "route_inter"])
+        clickedseries = clickedseries.drop(["route_inter"])
         return "\n".join(f"{clickedseries}".split("\n")[0:-1])
     else:
         return "Click on a data point to show filename and infos"
 
 
 app = dashapp.server
-app.secret_key = "super secret key"
+app.secret_key = "super secret key" # pyright: ignore
 
 if __name__ == "__main__":
-    dashapp.run_server(debug=True)
+    # The host parameter is needed, so the app is also accessible 
+    # from another computer in the local network
+    dashapp.run_server(debug=True, host="0.0.0.0")
 
-# start with: gunicorn app:app -b :8000
+# start with: guniorn app:app -b :8000

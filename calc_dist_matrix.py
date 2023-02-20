@@ -71,6 +71,7 @@ def update_dist_matrix(
         dsub = d[d.startendcluster == a]
         dists[str(a) + "_dateinamen"] = list(dsub.loc[:, "dateiname"])
         dists[a] = calc_dist_matrix(dsub, simmeasure=simmeasure)
+    mypickle.parents[0].mkdir(exist_ok=True)
     with open(mypickle, "wb") as f:
         pickle.dump(dists, f)
     return dists

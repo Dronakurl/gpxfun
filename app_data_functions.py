@@ -23,6 +23,10 @@ def parse_and_cluster(
     2. Infer startend cluster (most common start end points) -> startendcluster column
     3. Find the most common routes for each startendcluster -> cluster column 
     4. Save output data frame to pickle file
+    :param infolder: input folder for gpx data
+    :param mypickle: Path of the pickle file to store the output
+    :param delete: True if the gpx files should be deleted after they are read
+    :return: DataFrame with the parsed and clustered results
     """
     df, updated = update_pickle_from_folder(
         infolder=infolder, mypickle=mypickle, delete=delete

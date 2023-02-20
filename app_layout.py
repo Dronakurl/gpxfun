@@ -67,8 +67,7 @@ def get_loadstuff():
         options={
             "readdatafirst": "Load data first",
         },
-        # value=["readdatafirst"],
-        placeholder="select start/end combination",
+        placeholder="select start/end combinations",
         id="startend_cluster_dropdown",
         style={
             "width": "100%",
@@ -80,7 +79,7 @@ def get_loadstuff():
         options={
             "readdatafirst": "Load data first",
         },
-        placeholder="select type of route",
+        placeholder="select routes",
         id="cluster_dropdown",
         style={
             "width": "100%",

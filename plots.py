@@ -53,14 +53,27 @@ def get_plotting_zoom_level(longitudes=None, latitudes=None, lonlat_pairs=None):
     )
     # Finally, return the zoom level and the associated boundary-box center coordinates
     calccenter=b_box.center
-    return zoom, {"lat": calccenter.y, "lon": calccenter.x}
+    return int(zoom), {"lat": calccenter.y, "lon": calccenter.x}
 
 def prepareplotdata(
     route,
     groupfield: Optional[str] = None,
     routevar: str = "route_inter",
 ):
-    """prepare data for plotaroute function and convert the routevar column"""
+    """
+    prepare data for plotaroute function and convert the routevar column
+    :param route: pandas DataFrame containing a field routevar wher a list of 
+                    points with longitudes and latitudes tuples is stored
+    :type router: pandas.DataFrame
+    :param groupfield: column name containing a variable to group the data by
+    :type groupfield: str
+    :param routevar: column name containing in route DataFrame containing the routes
+    :type routevar: str
+    :returns: a pandas DataFrame with columns lon and lat, containing the 
+                longitudes and latitudes of the routes to plot
+                to be used by plotaroute function
+                the groupfield column is included and also the dateiname column
+    """
     if groupfield is not None:
         assert type(route) == pd.DataFrame
         outputdf = (
@@ -80,7 +93,7 @@ def prepareplotdata(
 
 
 def plotaroute(
-    route,
+    route: pd.DataFrame,
     zoom: int = -1,
     groupfield: Optional[str] = None,
     routevar: str = "route_inter",
@@ -89,6 +102,23 @@ def plotaroute(
 ):
     """
     plot a given route from a given route
+    :param route: a pandas dataset with route data. each row contains a whole route.
+            the pandas DataFrame is passed to the prepareplotdata first
+    :type route: pd.DataFrame
+    :param zoom: zoom level to be used by the mapbox function in plotly, 
+                default is -1 where the dynamic-zoom-for-mapbox function is applied
+                to get the right zoom level automatically
+    :type zoom: int
+    :param groupfield: column name containing a variable to group the data by
+    :type groupfield: str
+    :param routevar: column name containing in route DataFrame containing the routes
+    :type routevar: str
+    :param title: Title of the plot
+    :type title: str
+    :param specialpoints: a dictionary containing special points to be plotted
+            as markers on the map
+            the dictionary labels are used to label the point
+    :type specialpoints: dict
     """
     y = prepareplotdata(route, groupfield, routevar=routevar)
     load_figure_template("slate")
@@ -123,7 +153,7 @@ def plotaroute(
                     lat=list(list(zip(*points))[0]),
                     lon=list(list(zip(*points))[1]),
                     mode="markers",
-                    marker=go.scattermapbox.Marker(size=14, color=mycols[coln % 2]),
+                    marker=go.scattermapbox.Marker(size=14, color=mycols[1][coln]),
                     name=label,
                 )
             )
