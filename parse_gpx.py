@@ -118,6 +118,7 @@ def read_gpx_file_list(filelist: list, delete: bool = False) -> pd.DataFrame:
             "monat": "category",
         }
     )
+    df["wochentag"]=df["wochentag"].cat.reorder_categories(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
     return df
 
 

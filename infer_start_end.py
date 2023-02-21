@@ -9,7 +9,7 @@ from typing import Tuple
 
 
 def infer_start_end(
-    df: pd.DataFrame, quantile_for_cluster: float = 0.15
+        df: pd.DataFrame, quantile_for_cluster: float = 0.15, max_no_clusters : int = 4
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Start and stop locations are put in a 4D array for clustering.
@@ -41,10 +41,10 @@ def infer_start_end(
     )
     # at least 3 routes per cluster
     most_imp_clust=most_imp_clust[most_imp_clust>2]
-    # a maximum of 4 clusters is chosen
+    # a maximum of max_no_clusters clusters is chosen
     most_imp_clust = (
         most_imp_clust
-        .head(4)
+        .head(max_no_clusters)
         .reset_index()
         .drop("startendcluster", axis=1)
         .rename({"index": "old"}, axis=1)
