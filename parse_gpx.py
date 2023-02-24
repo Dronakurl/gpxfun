@@ -10,6 +10,7 @@ import gpxpy.gpx
 import numpy as np
 import pandas as pd
 from scipy.interpolate import UnivariateSpline, interp1d
+import pytz
 
 from utilities import getfilelist, season_of_date
 from tqdm import tqdm
@@ -37,26 +38,32 @@ def interpolateroutes(r: list) -> list:
     return points
 
 
-def read_gpx_file(f: Path, filehandle=None) -> dict:
-    """read one gpxfile"""
+def read_gpx_file(dateiname: Path, filehandle=None) -> dict:
+    """read one gpxfile
+    :param dateiname: Path containing the gpx file
+    :type dateiname: Path
+    :param filehandle: Optional file handle. If given, the data is read from the file
+                        handle instead of the file given in dateiname 
+    :return: dictionary with the results of the parsing
+    :rtype: dict
+    """
     p = {}
-    p["dateiname"] = f.name
+    p["dateiname"] = dateiname.name
     if filehandle is None:
-        with open(f) as fh:
+        with open(dateiname) as fh:
             g = gpxpy.parse(fh)
     else:
         g = gpxpy.parse(filehandle)
     p["strecke"] = gpxpy.gpx.GPX.length_3d(g)
-    p["datum"] = g.get_time_bounds().start_time.date()
-    p["startzeit"] = g.get_time_bounds().start_time.time()
+    p["startdatetime"] = g.get_time_bounds().start_time.astimezone(pytz.timezone("Europe/Berlin")) # pyright: ignore
+    p["datum"] = p["startdatetime"].date() # pyright: ignore
+    p["startzeit"] = p["startdatetime"].time() # pyright: ignore
+    p["startzeitfloat"]=p["startzeit"].hour +p["startzeit"].minute/60.0
     p["monat"] = p["datum"].month
     p["wochentag"] = p["datum"].strftime("%A")
     p["jahreszeit"] = season_of_date(p["datum"])
-    p["dauer"] = gpxpy.gpx.GPX.get_duration(g) / 60
+    p["dauer"] = gpxpy.gpx.GPX.get_duration(g) / 60 # pyright: ignore
     p["keywords"] = "" if g.keywords is None else g.keywords
-    if f.name == "20221013T010322000.gpx":
-        p["keywords"] = "heim"
-    p["bergauf"] = g.get_uphill_downhill().uphill
     p["bergab"] = g.get_uphill_downhill().downhill
     x = g.get_points_data()[0]
     p["start"] = gpxpy.geo.Location(
