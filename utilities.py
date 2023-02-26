@@ -2,26 +2,30 @@
 Utilities that can be reused some day
 """
 import datetime
+import logging
 from pathlib import Path
 
 import pandas as pd
+import tqdm
 
 
 def getfilelist(mypath: str, suffix: str, withpath: bool = False) -> list:
-    """ Find all files in folders and subfolders given a specific extension """
+    """Find all files in folders and subfolders given a specific extension"""
     p = Path(mypath).glob("**/*." + suffix)
     l = [x for x in p if x.is_file()]
     if withpath == False:
         l = [f.name for f in l]
     return l
 
+
 def getdirlist(mypath: str, withpath: bool = False) -> list:
-    """ Find all subfolders of a folder """
+    """Find all subfolders of a folder"""
     p = Path(mypath).glob("*")
     l = [x for x in p if x.is_dir()]
     if withpath == False:
         l = [f.name for f in l]
     return l
+
 
 def season_of_date(date: datetime.date) -> str:
     """Zu einem Datumg die Jahreszeit zuordnen"""
@@ -55,3 +59,16 @@ def convert_bytes(num):
         if num < 1024.0:
             return "%3.1f %s" % (num, x)
         num /= 1024.0
+
+
+class TqdmLoggingHandler(logging.Handler):
+    def __init__(self, level=logging.NOTSET):
+        super().__init__(level)
+
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            tqdm.tqdm.write(msg)
+            self.flush()
+        except Exception:
+            self.handleError(record)

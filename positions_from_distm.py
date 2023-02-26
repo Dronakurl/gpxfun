@@ -13,7 +13,7 @@ def coords_of_point(D, j):
         return np.array([x,0])
     
 def calculate_positions(D):
-    (m, n) = D.shape
+    (_, n) = D.shape
     P = np.zeros( (n, 2) )
     tr = ( min(min(D[2,0:2]), min(D[2,3:n])) / 2)**2
     P[1,0] = D[0,1]

@@ -5,6 +5,7 @@ to be used within the main dash app.py
 from pathlib import Path
 import pickle
 from typing import Tuple
+import logging
 
 import pandas as pd
 
@@ -13,6 +14,8 @@ from cluster_it import cluster_all
 from infer_start_end import infer_start_end
 from parse_gpx import update_pickle_from_folder
 
+log = logging.getLogger(__name__)
+
 def parse_and_cluster(
     infolder: str,
     mypickle: Path = Path("pickles/df.pickle"),
@@ -20,9 +23,10 @@ def parse_and_cluster(
 ) -> pd.DataFrame:
     """ 
     1. Parse the gpx data in a folder to a data frame 
-    2. Infer startend cluster (most common start end points) -> startendcluster column
-    3. Find the most common routes for each startendcluster -> cluster column 
-    4. Save output data frame to pickle file
+    2. Get weather data from meteostat
+    3. Infer startend cluster (most common start end points) -> startendcluster column
+    4. Find the most common routes for each startendcluster -> cluster column 
+    5. Save output data frame to pickle file
     :param infolder: input folder for gpx data
     :param mypickle: Path of the pickle file to store the output
     :param delete: True if the gpx files should be deleted after they are read
@@ -40,9 +44,11 @@ def parse_and_cluster(
         simmeasure="mae",
     )
     # apply cluster algorithm for all startendcluster
-    df , most_imp_clusters = cluster_all(df, dists, most_imp_clusters, writetopickle=False)
+    df , most_imp_clusters = cluster_all(df, dists, most_imp_clusters )
+    log.debug(f"write df DataFrame to {mypickle}")
     with open(mypickle, "wb") as f:
         pickle.dump(df, f)
+    log.debug(f"write df DataFrame to {Path(mypickle).parents[0] / 'most_imp_clusters.pickle'}")
     with open(Path(mypickle).parents[0] / "most_imp_clusters.pickle", "wb") as f:
         pickle.dump(most_imp_clusters, f)
     return df

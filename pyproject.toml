@@ -1,0 +1,16 @@
+[tool.pyright]
+include = ["*.py","analyzer/**"]
+exclude = ["**/node_modules",
+    "**/__pycache__",
+    "Archiv/**"
+]
+# ignore = ["src/oldstuff"]
+# defineConstant = { DEBUG = true }
+# stubPath = "src/stubs"
+
+typeCheckingMode = "off"
+reportMissingTypeStubs = false
+useLibraryCodeForTypes = false
+
+pythonVersion = "3.10"
+pythonPlatform = "Linux"

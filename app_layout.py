@@ -2,11 +2,13 @@
 Layout for the dash app, to be used in the main app.py
 """
 import uuid
+import logging
 from utilities import getdirlist
 
 from dash import dcc, html
 import dash_bootstrap_components as dbc
 
+log = logging.getLogger(__name__)
 
 def getsessionids():
     opts = {}
@@ -182,7 +184,7 @@ def get_violintab():
 
 def serve_layout():
     sessionid = str(uuid.uuid4())
-    print(f"serve_layout: start with sessionid = {sessionid}")
+    log.debug(f"serve_layout: start with sessionid = {sessionid}")
     tabs = dbc.Tabs([get_clustertab(), get_violintab()], active_tab="clustertab")
 
     mainwindow = dbc.Row([dbc.Col(get_loadstuff(), width=4), dbc.Col(tabs, width=8)])

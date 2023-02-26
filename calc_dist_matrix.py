@@ -60,6 +60,7 @@ def update_dist_matrix(
     ''' 
     Look for the given pickle file and update it with the distance
     matrix if necessary, i.e. if the updated flag is set
+    :return : dictionary with the distance matrix and the indices (column dateiname) for each startendcluster
     '''
     if mypickle.is_file() and not updated:
         with open(mypickle, "rb") as f:

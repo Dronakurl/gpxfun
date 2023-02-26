@@ -7,15 +7,21 @@ from pathlib import Path
 import threading
 import pickle
 import json
+import logging
 
 from dash import Dash, Input, Output, State, ctx, no_update
 import dash_bootstrap_components as dbc
 from tqdm import tqdm
 
 from plots import plotaroute, violin
-from utilities import getfilelist, convert_bytes
+from utilities import getfilelist, convert_bytes, TqdmLoggingHandler
 from app_data_functions import parse_and_cluster, get_data_from_pickle_session
 from app_layout import serve_layout
+
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+log.addHandler(TqdmLoggingHandler())
 
 dbc_css = "https://cdn.jsdelivr.net/gh/AnnMarieW/dash-bootstrap-templates/dbc.css"
 dashapp = Dash(__name__, external_stylesheets=[dbc.themes.SLATE, dbc_css])
@@ -31,9 +37,9 @@ dashapp.layout = serve_layout
     State("sessionid", "data"),
     prevent_initial_call=True,
 )
-def update_startend_dropdown(storedflag, sessionid):
+def update_startend_drjpdown(storedflag, sessionid):
     """Initialize the dropdown for the startendcluster"""
-    print("CALLBACK update_startend_dropdown: "+str(ctx.triggered_id))
+    log.debug("CALLBACK update_startend_dropdown: " + str(ctx.triggered_id))
     if storedflag == False:
         return [no_update] * 2
     with open(Path("sessions") / sessionid / "most_imp_clusters.pickle", "rb") as f:
@@ -55,7 +61,7 @@ def update_startend_dropdown(storedflag, sessionid):
 )
 def update_cluster_dropdown(startendclusters, storedflag, sessionid):
     """Initialize the dropdown for the route cluster using startendcluster"""
-    print("CALLBACK update_cluster_dropdown: "+str(ctx.triggered_id))
+    log.debug("CALLBACK update_cluster_dropdown: " + str(ctx.triggered_id))
     if storedflag == False:
         return [no_update] * 2
     with open(Path("sessions") / sessionid / "most_imp_clusters.pickle", "rb") as f:
@@ -113,11 +119,11 @@ def update_progessbar(_, sessionid, numberoffiles, picksessionid):
     storedflag = n == 0
     # check if the parsing thread is finished, otherwise, remain in state "not stored"
     for thread in threading.enumerate():
-        # print(f"update_progessbar({sessionid}): thread.names : {thread.name}")
+        # log.debug(f"update_progessbar({sessionid}): thread.names : {thread.name}")
         if thread.name == "read" and thread.is_alive():
             storedflag = False
     percentage = (numberoffiles - n) / numberoffiles * 100
-    # print( f" numberoffiles={numberoffiles}, percentage={percentage}, storedflag={storedflag}")
+    # log.debug( f" numberoffiles={numberoffiles}, percentage={percentage}, storedflag={storedflag}")
     if storedflag:
         filesize = convert_bytes(
             (Path("sessions") / sessionid / "df.pickle").stat().st_size
@@ -149,7 +155,7 @@ def update_progessbar(_, sessionid, numberoffiles, picksessionid):
 )
 def upload(contents, filenames, sessionid):
     """upload gpx data to session folder and start parsing thread"""
-    print("CALLBACK upload: "+str(ctx.triggered_id))
+    log.debug("CALLBACK upload: " + str(ctx.triggered_id))
     if ctx.triggered_id == None:
         return no_update
     # create sessionid folder
@@ -158,13 +164,16 @@ def upload(contents, filenames, sessionid):
     for ii in tqdm(
         range(len(contents)), colour="#ffff00", desc="GPX -> session folder"
     ):
-        cc = contents[ii]
         filename = filenames[ii]
+        if Path(filename).suffix != ".gpx":
+            log.warning(f"provided {filename}, which is not a gpx file")
+            continue
+        cc = contents[ii]
         _, content_string = cc.split(",")
         strdata = base64.b64decode(content_string).decode("utf-8")
         with open(Path("sessions") / sessionid / filename, "w") as f:
             f.write(strdata)
-    print(f"upload({sessionid}): number of files = {len(contents)}")
+    log.debug(f"upload({sessionid}): number of files = {len(contents)}")
     mythread = threading.Thread(
         target=parse_and_cluster,
         name="read",
@@ -186,27 +195,23 @@ def upload(contents, filenames, sessionid):
     prevent_initial_call=True,
 )
 def showmap(storedflag, clusters, sessionid):
-    """ Draws a map with the most common routes"""
-    print("CALLBACK showmap: "+ str(ctx.triggered_id) + " " + str(clusters))
+    """Draws a map with the most common routes"""
+    log.debug("CALLBACK showmap: " + str(ctx.triggered_id) + " " + str(clusters))
     if storedflag == False or clusters is None:
         return no_update
     dr, most_imp_clusters = get_data_from_pickle_session(sessionid)
     dr = dr[dr.cluster.isin(clusters)]
-    if len(dr)<1:
+    if len(dr) < 1:
         return no_update
-    mics=most_imp_clusters
-    mics=mics[mics.cluster.isin(clusters)]
-    mics=mics.drop(["cluster","dateiname"],axis=1)
-    mics=mics.drop_duplicates()
-    points={}
-    points["start"] = list(zip(mics.start_lat,mics.start_lon))
-    points["end"]   = list(zip(mics.ende_lat,mics.ende_lon))
+    mics = most_imp_clusters
+    mics = mics[mics.cluster.isin(clusters)]
+    mics = mics.drop(["cluster", "dateiname"], axis=1)
+    mics = mics.drop_duplicates()
+    points = {}
+    points["start"] = list(zip(mics.start_lat, mics.start_lon))
+    points["end"] = list(zip(mics.ende_lat, mics.ende_lon))
     fig = plotaroute(
-        dr,
-        groupfield="cluster",
-        zoom=-1,
-        title=None,
-        specialpoints=points
+        dr, groupfield="cluster", zoom=-1, title=None, specialpoints=points
     )
     return fig
 
@@ -221,7 +226,7 @@ def showmap(storedflag, clusters, sessionid):
 )
 def showhists(violinfactor, storedflag, clusters, sessionid):
     """Show plots to analyze the times"""
-    print("CALLBACK showhists: "+ str(ctx.triggered_id))
+    log.debug("CALLBACK showhists: " + str(ctx.triggered_id))
     if storedflag == False or clusters is None:
         return no_update
     dr, _ = get_data_from_pickle_session(sessionid)
@@ -240,11 +245,11 @@ def showhists(violinfactor, storedflag, clusters, sessionid):
 )
 def clickondata(clickdata, clusters, storedflag, sessionid):
     """Show information on the clicked data point"""
-    print("CALLBACK clickondata: "+ str(ctx.triggered_id))
+    log.debug("CALLBACK clickondata: " + str(ctx.triggered_id))
     if storedflag == False or clusters is None:
         return no_update
     dr, _ = get_data_from_pickle_session(sessionid)
-    if clickdata is not None :
+    if clickdata is not None:
         # I don't know, why I need this, but the given clickdata is not a proper dict at first
         clickeddict = json.loads(json.dumps(clickdata))
         clicked_file = clickeddict["points"][0]["customdata"][0]
@@ -256,10 +261,10 @@ def clickondata(clickdata, clusters, storedflag, sessionid):
 
 
 app = dashapp.server
-app.secret_key = "super secret key" # pyright: ignore
+app.secret_key = "super secret key"  # pyright: ignore
 
 if __name__ == "__main__":
-    # The host parameter is needed, so the app is also accessible 
+    # The host parameter is needed, so the app is also accessible
     # from another computer in the local network
     dashapp.run_server(debug=True, host="0.0.0.0")
 

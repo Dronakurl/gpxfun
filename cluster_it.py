@@ -1,21 +1,26 @@
 """
 Functions to cluster routers
 """
-import pickle
 from hdbscan import HDBSCAN
 import numpy as np
 import pandas as pd
+from typing import Optional
 from scipy.cluster.hierarchy import average, fcluster
 from scipy.spatial.distance import squareform
 from sklearn.metrics.pairwise import pairwise_distances
 
 
-def calc_cluster_from_dist(distm, indices: list, clusterlabel: str = "cluster"):
+def calc_cluster_from_dist(
+    distm,
+    indices: list,
+    clusterlabel: str = "cluster",
+    min_routes_per_cluster: Optional[int] = None,
+):
     """
     From a distance matrix distm, calculate the clusters
     returns a pd.DataFrame with a cluster label for each index in indices
-    distm must be of shape (len(indices),len(indices))
     cluster labels get suffix given in clusterlabel
+    :param distm: distance matrix must be of shape (len(indices),len(indices))
     """
     # confusing: squareform transforms to upperdiagmatrix when called on a square matrix
     updiagm = squareform(distm)
@@ -26,11 +31,18 @@ def calc_cluster_from_dist(distm, indices: list, clusterlabel: str = "cluster"):
         zip(indices, cluster_labels),
         columns=["dateiname", "cluster"],
     )
+    x = dfcluster.cluster.value_counts().sort_values(ascending=False).reset_index()
+    if min_routes_per_cluster is not None:
+
+        def only_large(r):
+            if r["cluster"] > min_routes_per_cluster:
+                return r["index"]
+            else:
+                return "other"
+
+        x["index"] = x.apply(only_large, axis=1)
     x = (
-        dfcluster.cluster.value_counts()
-        .sort_values(ascending=False)
-        .reset_index()
-        .drop("cluster", axis=1)
+        x.drop("cluster", axis=1)
         .rename({"index": "cluster"}, axis=1)
         .reset_index()
         .rename({"index": "new"}, axis=1)
@@ -47,12 +59,7 @@ def calc_cluster_from_dist(distm, indices: list, clusterlabel: str = "cluster"):
     return dfcluster
 
 
-def cluster_all(
-    d: pd.DataFrame,
-    dists: dict,
-    most_imp_clusters: pd.DataFrame,
-    writetopickle: bool = True,
-):
+def cluster_all(d: pd.DataFrame, dists: dict, most_imp_clusters: pd.DataFrame):
     """Cluster routes grouped by custom locations and write to disk"""
     d["cluster"] = ""
     d.index = d.dateiname
@@ -66,15 +73,10 @@ def cluster_all(
         d.groupby(["startendcluster", "cluster"])["dateiname"].count().reset_index()
     )
     clustercombis = clustercombis[clustercombis.dateiname > 0]
-    clustercombis = most_imp_clusters.merge(clustercombis,on="startendcluster")
+    clustercombis = most_imp_clusters.merge(clustercombis, on="startendcluster")
     clustercombis.startendcluster.astype("category")
     clustercombis.cluster.astype("category")
     d["cluster"] = d.cluster.astype("category")
-    if writetopickle:
-        with open("pickles/df.pickle", "wb") as f:
-            pickle.dump(d, f)
-        with open("pickles/most_imp_clusters.pickle", "wb") as f:
-            pickle.dump(d, f)
     return d, clustercombis
 
 

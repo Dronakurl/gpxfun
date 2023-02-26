@@ -2,12 +2,14 @@
 Function to find the most common start-end-point-comibnations
 """
 import numpy as np
+import logging
 import pandas as pd
 from scipy.cluster.hierarchy import average, fcluster
 from scipy.spatial.distance import pdist
 from typing import Tuple
 from gpxpy.geo import Location
 
+log = logging.getLogger(__name__)
 
 def infer_start_end(
     df: pd.DataFrame,
@@ -123,19 +125,21 @@ def infer_start_end(
         da["startendcluster_algo"] = da.startendcluster_algo.cat.add_categories(
             -1
         ).fillna(-1)
-        print(
-            pd.pivot_table(
-                da,
-                "dateiname",
-                index="startendcluster",
-                columns="startendcluster_algo",
-                aggfunc="count",
+        if log.level==logging.DEBUG:
+            print(
+                pd.pivot_table(
+                    da,
+                    "dateiname",
+                    index="startendcluster",
+                    columns="startendcluster_algo",
+                    aggfunc="count",
+                )
             )
-        )
 
-    da=d[["dateiname","startendcluster"]].copy()
-    da["startendcluster"] = da.startendcluster.cat.add_categories(-1).fillna(-1)
-    print("infer_start_end: final cluster statistics")
-    print(pd.pivot_table(da, "dateiname", index="startendcluster", aggfunc="count"))
+    if log.level==logging.DEBUG:
+        da=d[["dateiname","startendcluster"]].copy()
+        da["startendcluster"] = da.startendcluster.cat.add_categories(-1).fillna(-1)
+        print("infer_start_end: final cluster statistics")
+        print(pd.pivot_table(da, "dateiname", index="startendcluster", aggfunc="count"))
 
     return d, most_imp_clust
