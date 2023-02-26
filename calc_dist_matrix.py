@@ -4,12 +4,14 @@ Provides functions to calculate distance matrices with different measures
 from math import sqrt
 from pathlib import Path
 import pickle
+import logging
 
 import numpy as np
 import pandas as pd
 import similaritymeasures
 from tqdm import tqdm
 
+log = logging.getLogger("gpxfun."+__name__)
 
 def area_comp(x: list, y: list):
     return convert_to_np_and_compare(x, y, similaritymeasures.area_between_two_curves)
@@ -68,11 +70,12 @@ def update_dist_matrix(
     dists = {}
     startendclusters = list(d.startendcluster.cat.categories)
     for a in startendclusters:
-        print(f"update_dist_matrix: distance matrix for routes in startendcluster {a}")
+        log.info(f"update_dist_matrix: distance matrix for routes in startendcluster {a}")
         dsub = d[d.startendcluster == a]
         dists[str(a) + "_dateinamen"] = list(dsub.loc[:, "dateiname"])
         dists[a] = calc_dist_matrix(dsub, simmeasure=simmeasure)
     mypickle.parents[0].mkdir(exist_ok=True)
+    log.info(f"save distance matrices and filename lists to a dict and pickle it")
     with open(mypickle, "wb") as f:
         pickle.dump(dists, f)
     return dists

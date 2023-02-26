@@ -6,8 +6,8 @@ import logging
 from pathlib import Path
 
 import pandas as pd
-import tqdm
 
+log=logging.getLogger("gpxfun."+__name__)
 
 def getfilelist(mypath: str, suffix: str, withpath: bool = False) -> list:
     """Find all files in folders and subfolders given a specific extension"""
@@ -60,15 +60,3 @@ def convert_bytes(num):
             return "%3.1f %s" % (num, x)
         num /= 1024.0
 
-
-class TqdmLoggingHandler(logging.Handler):
-    def __init__(self, level=logging.NOTSET):
-        super().__init__(level)
-
-    def emit(self, record):
-        try:
-            msg = self.format(record)
-            tqdm.tqdm.write(msg)
-            self.flush()
-        except Exception:
-            self.handleError(record)

@@ -3,7 +3,7 @@ import logging
 import pandas as pd
 from sklearn.neighbors import LocalOutlierFactor
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("gpxfun."+__name__)
 
 
 def get_data_for_one_startend(

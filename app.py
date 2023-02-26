@@ -8,20 +8,19 @@ import threading
 import pickle
 import json
 import logging
+import pandas as pd
 
 from dash import Dash, Input, Output, State, ctx, no_update
 import dash_bootstrap_components as dbc
 from tqdm import tqdm
 
 from plots import plotaroute, violin
-from utilities import getfilelist, convert_bytes, TqdmLoggingHandler
+from utilities import getfilelist, convert_bytes
 from app_data_functions import parse_and_cluster, get_data_from_pickle_session
 from app_layout import serve_layout
+from mylog import get_log
 
-logging.basicConfig(level=logging.INFO)
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
-log.addHandler(TqdmLoggingHandler())
+log = get_log("gpxfun", logging.DEBUG)
 
 dbc_css = "https://cdn.jsdelivr.net/gh/AnnMarieW/dash-bootstrap-templates/dbc.css"
 dashapp = Dash(__name__, external_stylesheets=[dbc.themes.SLATE, dbc_css])
@@ -258,6 +257,47 @@ def clickondata(clickdata, clusters, storedflag, sessionid):
         return "\n".join(f"{clickedseries}".split("\n")[0:-1])
     else:
         return "Click on a data point to show filename and infos"
+
+@dashapp.callback(
+    Output("statisticstable", "data"),
+    Output("statisticstable", "columns"),
+    Input("storedflag", "data"),
+    Input("cluster_dropdown", "value"),
+    State("sessionid", "data"),
+    prevent_initial_call=True,
+)
+def statisticstable(storedflag, clusters, sessionid):
+    """table with statistics"""
+    log.debug("CALLBACK statisticstable: " + str(ctx.triggered_id))
+    if storedflag == False or clusters is None:
+        return no_update, no_update
+    dr, _ = get_data_from_pickle_session(sessionid)
+    dr = dr[dr.cluster.isin(clusters)]
+    if len(dr)<1:
+        return no_update, no_update
+    # dr = dr[["dateiname","cluster","startendcluster","temp"]]
+    #     from geopy.geocoders import Nominatim
+    # >>> geolocator = Nominatim(user_agent="specify_your_app_name_here")
+    # >>> location = geolocator.reverse("52.509669, 13.376294")
+    # >>> print(location.address)
+    # Potsdamer Platz, Mitte, Berlin, 10117, Deutschland, European Union
+    dr = pd.pivot_table(
+        dr,
+        "dateiname",
+        index=["cluster"],
+        columns=["startendcluster"],
+        aggfunc=["count"],
+        margins=True,
+        observed=True,
+        dropna=False
+    )
+    dr.columns=dr.columns.droplevel()
+    dr=dr.reset_index()
+    dd = dr.to_dict('records') 
+    cols=[{"name": str(i), "id": str(i)} for i in dr.columns]
+    log.debug(f"dict: {dd[0:2]}")
+    log.debug(f"cols: {cols}")
+    return dd,cols
 
 
 app = dashapp.server

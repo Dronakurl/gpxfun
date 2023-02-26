@@ -6,7 +6,8 @@ import pytz
 import logging
 from tqdm import tqdm
 
-log=logging.getLogger(__name__)
+log = logging.getLogger("gpxfun." + __name__)
+
 
 def get_weather(
     d: pd.DataFrame, dt_col: str = "startdatetime", loc_col: str = "start"
@@ -29,16 +30,18 @@ def get_weather(
             desc="get weather",
             total=d.shape[0],
         )
-    ): # pyright: ignore
-        pbar.set_postfix_str(row[dt_col]) # pyright: ignore
-        dt = row[dt_col].replace(tzinfo=None) # pyright: ignore 
+    ):  # pyright: ignore
+        pbar.set_postfix_str(row[dt_col])  # pyright: ignore
+        dt = row[dt_col].replace(tzinfo=None)  # pyright: ignore
         wd = meteostat.Hourly(
             meteostat.Point(
-                row[loc_col].latitude, row[loc_col].longitude, row[loc_col].elevation # pyright: ignore
+                row[loc_col].latitude,
+                row[loc_col].longitude,
+                row[loc_col].elevation,  # pyright: ignore
             ),
             dt,
             dt + datetime.timedelta(hours=1),
-            row[dt_col].tzinfo.zone, # pyright: ignore
+            row[dt_col].tzinfo.zone,  # pyright: ignore
         ).fetch()
         wd = wd.head(1).reset_index().rename(index={0: index})
         awd = pd.concat([awd, wd])
@@ -50,20 +53,22 @@ def get_weather_dict(dt: datetime.datetime, lat: float, lon: float, ele: float) 
     gets the weather data from meteostat for a datetime and a latitude
     """
     log.debug(f"dt={dt}, lat={lat}, lon={lon}, ele={ele}")
-    if dt.tzinfo ==None:
-        timez="Europe/Berlin"
-        log.warning(f"No timezone included in datetime variable {dt}, defaulting to CET")
+    if dt.tzinfo == None:
+        timez = "Europe/Berlin"
+        log.warning(
+            f"No timezone included in datetime variable {dt}, defaulting to CET"
+        )
     else:
-        timez= str(dt.tzinfo) 
+        timez = str(dt.tzinfo)
     dt_dummy = dt.replace(tzinfo=None)
     wd = meteostat.Hourly(
         meteostat.Point(lat, lon, int(ele)),
         dt_dummy,
-        dt_dummy + datetime.timedelta(hours=1,minutes=1),
-        timez, 
+        dt_dummy + datetime.timedelta(hours=1, minutes=1),
+        timez,
     ).fetch()
     d = dict()
-    if len(wd)>0:
+    if len(wd) > 0:
         d = wd.iloc[0].to_dict()
     else:
         log.warning(f"could not find weather data")

@@ -9,7 +9,7 @@ from scipy.spatial.distance import pdist
 from typing import Tuple
 from gpxpy.geo import Location
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("gpxfun." + __name__)
 
 def infer_start_end(
     df: pd.DataFrame,

@@ -15,6 +15,7 @@ from infer_start_end import infer_start_end
 from parse_gpx import update_pickle_from_folder
 
 log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
 
 def parse_and_cluster(
     infolder: str,
@@ -44,7 +45,7 @@ def parse_and_cluster(
         simmeasure="mae",
     )
     # apply cluster algorithm for all startendcluster
-    df , most_imp_clusters = cluster_all(df, dists, most_imp_clusters )
+    df , most_imp_clusters = cluster_all(df, dists, most_imp_clusters, min_routes_per_cluster=10)
     log.debug(f"write df DataFrame to {mypickle}")
     with open(mypickle, "wb") as f:
         pickle.dump(df, f)

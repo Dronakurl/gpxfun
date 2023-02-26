@@ -4,28 +4,26 @@ A script to prepare the data and test plots for gpx analysis
 import logging
 from pathlib import Path
 import pickle
-import sys
 
 import pandas as pd
 
+from analyzer_factory import AnalyzerFactory
 from calc_dist_matrix import update_dist_matrix
 from cluster_it import cluster_all
 from infer_start_end import infer_start_end
+from mylog import get_log
 from parse_gpx import update_pickle_from_folder
-from prepare_data import get_data_for_one_startend, exclude_outliers
+from prepare_data import exclude_outliers, get_data_for_one_startend
 
-logging.basicConfig(level=logging.INFO)
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log = get_log("gpxfun", logging.DEBUG)
 
-print(log.level)
-sys.exit(0)
+log.info("start")
 # Read the gpx data from a folder. Data is stored in y pickle, so that
 # it does not need to be reloaded every time.
 d, updated = update_pickle_from_folder(
     infolder="/home/konrad/gpxfun/data",
     mypickle=Path("sessions/testcli/df.pickle"),
-    weather=False,
+    weather=True,
 )
 
 # infer common start end points
@@ -37,7 +35,9 @@ dists = update_dist_matrix(
 )
 
 # Apply Cluster algorithm to get similar paths
-d, most_imp_clusters = cluster_all(d, dists, most_imp_clusters)
+d, most_imp_clusters = cluster_all(
+    d, dists, most_imp_clusters, min_routes_per_cluster=10
+)
 
 mypickle = Path("sessions/testcli/df.pickle")
 log.debug(f"write df DataFrame to {mypickle}")
@@ -63,14 +63,8 @@ log.info(
 dr = get_data_for_one_startend(d, startendcluster=1)
 dr = exclude_outliers(dr)
 
-from analyzer_factory import AnalyzerFactory
 
 afactory = AnalyzerFactory(dr)
 lasso = afactory.get_analyzer("AnalyzeLasso")
 lasso.analyze()
 print(lasso.output())
-
-sys.exit(0)
-
-
-# class model

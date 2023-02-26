@@ -2,7 +2,7 @@ import pandas as pd
 import logging
 import analyzer
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("gpxfun."+__name__)
 
 class AnalyzerFactory(object):
     def __init__(self, data: pd.DataFrame):

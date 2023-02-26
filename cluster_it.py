@@ -8,6 +8,9 @@ from typing import Optional
 from scipy.cluster.hierarchy import average, fcluster
 from scipy.spatial.distance import squareform
 from sklearn.metrics.pairwise import pairwise_distances
+import logging
+
+log = logging.getLogger("gpxfun." + __name__)
 
 
 def calc_cluster_from_dist(
@@ -31,21 +34,28 @@ def calc_cluster_from_dist(
         zip(indices, cluster_labels),
         columns=["dateiname", "cluster"],
     )
-    x = dfcluster.cluster.value_counts().sort_values(ascending=False).reset_index()
+    x = (
+        dfcluster.cluster
+        .value_counts()
+        .sort_values(ascending=False)
+        .reset_index()
+        .rename({"index": "old"}, axis=1)
+        .reset_index()
+        .rename({"index": "new"}, axis=1)
+    )
     if min_routes_per_cluster is not None:
 
         def only_large(r):
             if r["cluster"] > min_routes_per_cluster:
-                return r["index"]
+                return r["new"]
             else:
                 return "other"
 
-        x["index"] = x.apply(only_large, axis=1)
+        x["new"] = x.apply(only_large, axis=1)
     x = (
-        x.drop("cluster", axis=1)
-        .rename({"index": "cluster"}, axis=1)
-        .reset_index()
-        .rename({"index": "new"}, axis=1)
+        x
+        .drop("cluster", axis=1)
+        .rename({"old":"cluster"}, axis=1)
     )
     x.new = [clusterlabel + "_" + str(r) for r in x.new]
     dfcluster = (
@@ -59,13 +69,22 @@ def calc_cluster_from_dist(
     return dfcluster
 
 
-def cluster_all(d: pd.DataFrame, dists: dict, most_imp_clusters: pd.DataFrame):
+def cluster_all(
+    d: pd.DataFrame,
+    dists: dict,
+    most_imp_clusters: pd.DataFrame,
+    min_routes_per_cluster: Optional[int] = None,
+):
+    log.info("cluster {len(d)} routes in {len(most_imp_clusters)} startendclusters")
     """Cluster routes grouped by custom locations and write to disk"""
     d["cluster"] = ""
     d.index = d.dateiname
     for a in list(most_imp_clusters.startendcluster.cat.categories):
         dfcluster = calc_cluster_from_dist(
-            dists[a], dists[str(a) + "_dateinamen"], clusterlabel=str(a)
+            dists[a],
+            dists[str(a) + "_dateinamen"],
+            clusterlabel=str(a),
+            min_routes_per_cluster=min_routes_per_cluster,
         )
         d.update(dfcluster, join="left")
     d = d.reset_index(drop=True)

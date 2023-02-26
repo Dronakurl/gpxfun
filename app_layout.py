@@ -5,7 +5,7 @@ import uuid
 import logging
 from utilities import getdirlist
 
-from dash import dcc, html
+from dash import dcc, html, dash_table
 import dash_bootstrap_components as dbc
 
 log = logging.getLogger(__name__)
@@ -181,11 +181,19 @@ def get_violintab():
         tab_id="violintab",
     )
 
+def get_tabletab():
+    table = dash_table.DataTable(id="statisticstable")
+
+    return dbc.Tab(
+        dbc.Card([dbc.CardHeader("Statistics"),dbc.CardBody(table)]),
+        label="Statistics",
+        tab_id="Statistics_tab",
+    )
 
 def serve_layout():
     sessionid = str(uuid.uuid4())
     log.debug(f"serve_layout: start with sessionid = {sessionid}")
-    tabs = dbc.Tabs([get_clustertab(), get_violintab()], active_tab="clustertab")
+    tabs = dbc.Tabs([get_clustertab(), get_violintab(), get_tabletab()], active_tab="clustertab")
 
     mainwindow = dbc.Row([dbc.Col(get_loadstuff(), width=4), dbc.Col(tabs, width=8)])
 

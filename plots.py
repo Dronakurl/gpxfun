@@ -7,10 +7,12 @@ from typing import Optional
 from dash_bootstrap_templates import load_figure_template
 import numpy as np
 import planar
+import logging
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+log = logging.getLogger("gpxfun."+__name__)
 
 def get_plotting_zoom_level(longitudes=None, latitudes=None, lonlat_pairs=None):
     """Function documentation:\n

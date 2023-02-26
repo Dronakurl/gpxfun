@@ -13,13 +13,12 @@ import pandas as pd
 from scipy.interpolate import UnivariateSpline, interp1d
 import pytz
 
-from utilities import getfilelist, season_of_date, TqdmLoggingHandler
+from utilities import getfilelist, season_of_date
 from tqdm import tqdm
 from timezonefinder import TimezoneFinder
 from get_weather import get_weather_dict
 
-log = logging.getLogger(__name__)
-log.addHandler(TqdmLoggingHandler())
+log = logging.getLogger("gpxfun."+__name__)
 
 
 def interpolateroutes(r: list) -> list:
@@ -48,7 +47,7 @@ def interpolateroutes(r: list) -> list:
     return points
 
 
-def read_gpx_file(dateiname: Path, filehandle=None, weather: bool=True) -> dict:
+def read_gpx_file(dateiname: Path, filehandle=None, weather: bool = True) -> dict:
     """read one gpxfile
     :param dateiname: Path containing the gpx file
     :type dateiname: Path
@@ -57,6 +56,7 @@ def read_gpx_file(dateiname: Path, filehandle=None, weather: bool=True) -> dict:
     :return: dictionary with the results of the parsing
     :rtype: dict
     """
+    log.debug(f"read {dateiname} {'with' if weather else 'without'} weather data")
     p = {}
     p["dateiname"] = dateiname.name
     if filehandle is None:
@@ -104,7 +104,9 @@ def read_gpx_file(dateiname: Path, filehandle=None, weather: bool=True) -> dict:
     return p
 
 
-def read_gpx_file_list(filelist: list, delete: bool = False, weather: bool=True) -> pd.DataFrame:
+def read_gpx_file_list(
+    filelist: list, delete: bool = False, weather: bool = True
+) -> pd.DataFrame:
     """
     - Reads gpx files from a file list
     - Deletes the files if delete option is set
@@ -116,7 +118,7 @@ def read_gpx_file_list(filelist: list, delete: bool = False, weather: bool=True)
         pbar.set_postfix_str(f.name[0:20])
         if not str(f).endswith("gpx"):
             continue
-        p = read_gpx_file(f,weather=weather)
+        p = read_gpx_file(f, weather=weather)
         if delete:
             f.unlink()
         r.append(p)
@@ -156,7 +158,7 @@ def update_pickle_from_list(
     filelist: list,
     mypickle: Path = Path("pickles/df.pickle"),
     delete: bool = False,
-    weather: bool = True
+    weather: bool = True,
 ) -> tuple[pd.DataFrame, bool]:
     """update a pickle file of gpx data with a list of gpx files"""
     if not Path(mypickle).is_file():
@@ -170,7 +172,9 @@ def update_pickle_from_list(
     log.info(f"{len(fl)} von {len(filelist)} müssen noch eingelesen werden")
     updated = len(fl) > 0
     if updated:
-        d = pd.concat([d, read_gpx_file_list(fl, delete=delete, weather=weather)], axis=0)
+        d = pd.concat(
+            [d, read_gpx_file_list(fl, delete=delete, weather=weather)], axis=0
+        )
         mypickle.parents[0].mkdir(exist_ok=True)
         with open(mypickle, "wb") as f:
             pickle.dump(d, f)
@@ -181,14 +185,14 @@ def update_pickle_from_folder(
     infolder: str,
     mypickle: Path = Path("pickles/df.pickle"),
     delete: bool = False,
-    weather: bool = True
+    weather: bool = True,
 ) -> tuple[pd.DataFrame, bool]:
     """update a pickle file of gpx data with a folder containing gpx files"""
     return update_pickle_from_list(
         getfilelist(infolder, suffix="gpx", withpath=True),
         mypickle=mypickle,
         delete=delete,
-        weather = weather
+        weather=weather,
     )
 
 
