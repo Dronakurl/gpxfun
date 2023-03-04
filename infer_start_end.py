@@ -34,6 +34,7 @@ def infer_start_end(
     :type infer_by_distance: bool
     """
     d = df.copy()
+    d.drop(["start_lat", "start_lon", "ende_lat", "ende_lon"],axis=1,errors='ignore')
     startstop4d = d.apply(
         lambda x: [
             x["start"].latitude,
@@ -53,45 +54,42 @@ def infer_start_end(
         average(dists), np.quantile(dists, quantile_for_cluster), criterion="distance"
     )
     d["startendcluster"] = pd.Series(cluster_labels)
-    most_imp_clust = d.startendcluster.value_counts()
-    # at least 3 routes per cluster
-    most_imp_clust = most_imp_clust[most_imp_clust > 2]
+    se_cluster = d.startendcluster.value_counts()
+    # at least 3 routes per se_cluster
+    se_cluster = se_cluster[se_cluster > 2]
     # a maximum of max_no_clusters clusters is chosen
-    most_imp_clust = (
-        most_imp_clust.head(max_no_clusters)
+    se_cluster = (
+        se_cluster.head(max_no_clusters)
         .reset_index()
         .drop("startendcluster", axis=1)
         .rename({"index": "old"}, axis=1)
         .reset_index()
         .rename({"index": "startendcluster"}, axis=1)
     )
-    most_imp_clust["startendcluster"] = most_imp_clust.startendcluster.astype(
+    se_cluster["startendcluster"] = se_cluster.startendcluster.astype(
         "category"
     )
-    # .cat.add_categories(-1)
     d = (
         d.rename({"startendcluster": "old"}, axis=1)
-        .merge(most_imp_clust, on="old", how="left")
+        .merge(se_cluster, on="old", how="left")
         .drop("old", axis=1)
     )
-    # d["startendcluster"]=d.startendcluster.fillna(-1)
-    most_imp_clust = (
+    se_cluster = (
         d.groupby(["startendcluster"])[
             ["start_lat", "start_lon", "ende_lat", "ende_lon"]
         ]
         .mean()
         .reset_index()
     )
-
-    most_imp_clust["start"] = most_imp_clust.apply(
+    se_cluster["start"] = se_cluster.apply(
         lambda x: Location(x["start_lat"], x["start_lon"], None), axis=1
     )
-    most_imp_clust["ende"] = most_imp_clust.apply(
+    se_cluster["ende"] = se_cluster.apply(
         lambda x: Location(x["ende_lat"], x["ende_lon"], None), axis=1
     )
-
     if infer_by_distance:
-        tmp = most_imp_clust[["startendcluster", "start", "ende"]]
+        log.info("infer by distance on top of the clustering algorithm")
+        tmp = se_cluster[["startendcluster", "start", "ende"]]
         tmp = tmp.rename(
             {
                 "startendcluster": "startendcluster_x",
@@ -100,7 +98,6 @@ def infer_start_end(
             },
             axis=1,
         )
-
         ds = d.copy().merge(tmp, how="cross")
         ds = ds[
             ds.apply(
@@ -111,7 +108,6 @@ def infer_start_end(
                 axis=1,
             )
         ][["startendcluster", "startendcluster_x", "dateiname"]]
-
         d = d.merge(ds[["dateiname", "startendcluster_x"]], how="left").rename(
             {
                 "startendcluster": "startendcluster_algo",
@@ -119,7 +115,6 @@ def infer_start_end(
             },
             axis=1,
         )
-
         da = d[["startendcluster", "startendcluster_algo", "dateiname"]].copy()
         da["startendcluster"] = da.startendcluster.cat.add_categories(-1).fillna(-1)
         da["startendcluster_algo"] = da.startendcluster_algo.cat.add_categories(
@@ -136,10 +131,25 @@ def infer_start_end(
                 )
             )
 
-    if log.level==logging.DEBUG:
+    if log.level<=logging.DEBUG:
         da=d[["dateiname","startendcluster"]].copy()
         da["startendcluster"] = da.startendcluster.cat.add_categories(-1).fillna(-1)
         print("infer_start_end: final cluster statistics")
         print(pd.pivot_table(da, "dateiname", index="startendcluster", aggfunc="count"))
 
-    return d, most_imp_clust
+    return d, se_cluster
+
+if __name__ =="__main__":
+    from mylog import get_log
+    log = get_log()
+    import pickle
+    from pathlib import Path
+    mypickle = Path("sessions/testcli/df.pickle")
+    with open(mypickle, "rb") as f:
+        d = pickle.load(f)
+    mypickle = Path("sessions/testcli/most_imp_clusters.pickle")
+    with open(mypickle, "rb") as f:
+        most_imp_clusters = pickle.load(f)
+    dr, se_cluster = infer_start_end(d)
+    print(se_cluster.info())
+

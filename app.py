@@ -1,7 +1,6 @@
 """ 
-A dash app to visualize the results
+A plotly-dash app for analyzing gpx data of regular routes
 """
-# from dash import dcc, html, Dash, Output, Input, State, ctx, MATCH, ALL, dash_table
 import base64
 from pathlib import Path
 import threading
@@ -9,21 +8,23 @@ import pickle
 import json
 import logging
 import pandas as pd
+import plotly.express as px
 
 from dash import Dash, Input, Output, State, ctx, no_update
 import dash_bootstrap_components as dbc
+from dash_bootstrap_templates import load_figure_template
 from tqdm import tqdm
 
-from plots import plotaroute, violin
+from plots import plotaroute, violin, TEMPLATE
 from utilities import getfilelist, convert_bytes
 from app_data_functions import parse_and_cluster, get_data_from_pickle_session
-from app_layout import serve_layout
+from app_layout import serve_layout, MYCOLOR
 from mylog import get_log
 
 log = get_log("gpxfun", logging.DEBUG)
 
 dbc_css = "https://cdn.jsdelivr.net/gh/AnnMarieW/dash-bootstrap-templates/dbc.css"
-dashapp = Dash(__name__, external_stylesheets=[dbc.themes.SLATE, dbc_css])
+dashapp = Dash(__name__, external_stylesheets=[dbc.themes.VAPOR, dbc_css])
 dashapp.title = "Bike route analyzer"
 
 dashapp.layout = serve_layout
@@ -128,16 +129,16 @@ def update_progessbar(_, sessionid, numberoffiles, picksessionid):
             (Path("sessions") / sessionid / "df.pickle").stat().st_size
         )
         textarea = f"Finished parsing {numberoffiles} GPX files\n"
-        textarea += f"Session id: {sessionid}"
+        textarea += f"Session id: {sessionid}\n"
         textarea += f"Total file size: {filesize}"
     else:
         textarea = f"Remaining files to parse ({n} of {numberoffiles})\n"
-        textarea += f"Session id: {sessionid}"
+        textarea += f"Session id: {sessionid}\n"
         textarea += "\n".join(filelist)
     return (
         percentage,
         f"{numberoffiles-n} of {numberoffiles}",
-        "#FF9800" if storedflag == False else "#00FF18",
+        MYCOLOR if storedflag == False else "#00FF54",
         no_update if storedflag == False else storedflag,
         textarea,
         storedflag,
@@ -251,6 +252,7 @@ def clickondata(clickdata, clusters, storedflag, sessionid):
     if clickdata is not None:
         # I don't know, why I need this, but the given clickdata is not a proper dict at first
         clickeddict = json.loads(json.dumps(clickdata))
+        # import pdb; pdb.set_trace()
         clicked_file = clickeddict["points"][0]["customdata"][0]
         clickedseries = dr[dr["dateiname"] == clicked_file].iloc[0]
         clickedseries = clickedseries.drop(["route_inter"])
@@ -258,9 +260,10 @@ def clickondata(clickdata, clusters, storedflag, sessionid):
     else:
         return "Click on a data point to show filename and infos"
 
+
 @dashapp.callback(
-    Output("statisticstable", "data"),
-    Output("statisticstable", "columns"),
+    Output("statisticsnewtable", "children"),
+    Output("statisticstimeseries", "figure"),
     Input("storedflag", "data"),
     Input("cluster_dropdown", "value"),
     State("sessionid", "data"),
@@ -272,33 +275,84 @@ def statisticstable(storedflag, clusters, sessionid):
     if storedflag == False or clusters is None:
         return no_update, no_update
     dr, _ = get_data_from_pickle_session(sessionid)
-    dr = dr[dr.cluster.isin(clusters)]
-    if len(dr)<1:
+    if len(dr) < 1:
         return no_update, no_update
-    # dr = dr[["dateiname","cluster","startendcluster","temp"]]
     #     from geopy.geocoders import Nominatim
     # >>> geolocator = Nominatim(user_agent="specify_your_app_name_here")
     # >>> location = geolocator.reverse("52.509669, 13.376294")
     # >>> print(location.address)
     # Potsdamer Platz, Mitte, Berlin, 10117, Deutschland, European Union
-    dr = pd.pivot_table(
-        dr,
+    # get plot
+    dx = dr[["dateiname","startdatetime", "startendcluster", "cluster"]].copy()
+    cats = list(dx.startendcluster.cat.categories)
+    dx["startendcluster"] = dx.startendcluster.cat.add_categories("other")
+    dx["startendcluster"] = dx.startendcluster.fillna("other")
+    dx["cluster"] = dx.cluster.cat.add_categories("other")
+    dx["cluster"] = dx.cluster.fillna("other")
+    load_figure_template(TEMPLATE)
+    fig = px.histogram(
+        dx,
+        height=200,
+        x="startdatetime",
+        color="startendcluster",
+        category_orders={"startendcluster": [*cats, "other"]},
+        template=TEMPLATE,
+    )
+    fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+    # Get statisticstable
+    dp = pd.pivot_table(
+        dx,
         "dateiname",
         index=["cluster"],
         columns=["startendcluster"],
         aggfunc=["count"],
         margins=True,
         observed=True,
-        dropna=False
+        dropna=False,
     )
-    dr.columns=dr.columns.droplevel()
-    dr=dr.reset_index()
-    dd = dr.to_dict('records') 
-    cols=[{"name": str(i), "id": str(i)} for i in dr.columns]
-    log.debug(f"dict: {dd[0:2]}")
-    log.debug(f"cols: {cols}")
-    return dd,cols
+    dp = dp.sort_index()
+    # dp.columns = dp.columns.droplevel()
+    dp.columns = pd.MultiIndex.from_tuples(
+        [("Startend cluster", x[1]) for x in list(dp.columns)]
+    )
+    dp.index.name = "Cluster"
+    newtable = dbc.Table.from_dataframe(
+        dp,
+        striped=True,
+        bordered=True,
+        hover=True,
+        index=True,
+        style={
+            "font-size": "8pt",
+            "font-family": "Roboto Mono, mono",
+            "padding":"0px"
+        }
+    )
+    return newtable, fig
 
+# @dashapp.callback(
+#     Output("cluster_dropi", "options"),
+#     Output("cluster_dropdown", "value"),
+#     Input("startend_cluster_dropdown", "value"),
+#     Input("storedflag", "data"),
+#     State("sessionid", "data"),
+#     prevent_initial_call=True,
+# )
+# def update_analyzer_dropdown(startendclusters, storedflag, sessionid):
+#     """Initialize the dropdown for the route cluster using startendcluster"""
+#     log.debug("CALLBACK update_cluster_dropdown: " + str(ctx.triggered_id))
+#     if storedflag == False:
+#         return [no_update] * 2
+#     with open(Path("sessions") / sessionid / "most_imp_clusters.pickle", "rb") as f:
+#         most_imp_clusters = pickle.load(f)
+#     clusters = most_imp_clusters[
+#         most_imp_clusters.startendcluster.isin([int(se) for se in startendclusters])
+#     ].cluster
+#     cluster_dropdown_opts = {}
+#     for clu in list(clusters):
+#         cluster_dropdown_opts[clu] = "Route " + str(clu)
+#     # cluster_dropdown_opts["all"]="all routes"
+#     return cluster_dropdown_opts, clusters
 
 app = dashapp.server
 app.secret_key = "super secret key"  # pyright: ignore
@@ -308,4 +362,4 @@ if __name__ == "__main__":
     # from another computer in the local network
     dashapp.run_server(debug=True, host="0.0.0.0")
 
-# start with: guniorn app:app -b :8000
+# start with: gunicorn app:app -b :8000

@@ -4,6 +4,7 @@ Archiv/
 *.sqlite3
 *.ods
 data/
+fitbitdata/
 pickle/
 file_system_store
 

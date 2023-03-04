@@ -2,8 +2,6 @@
 Provides functions to calculate distance matrices with different measures
 """
 from math import sqrt
-from pathlib import Path
-import pickle
 import logging
 
 import numpy as np
@@ -11,7 +9,8 @@ import pandas as pd
 import similaritymeasures
 from tqdm import tqdm
 
-log = logging.getLogger("gpxfun."+__name__)
+log = logging.getLogger("gpxfun." + __name__)
+
 
 def area_comp(x: list, y: list):
     return convert_to_np_and_compare(x, y, similaritymeasures.area_between_two_curves)
@@ -56,26 +55,18 @@ def calc_dist_matrix(
     return distance_mat
 
 
-def update_dist_matrix(
-    d: pd.DataFrame, mypickle: Path, updated: bool = True, simmeasure: str = "mae"
-) -> dict:
-    ''' 
+def calc_dist_matrix_per_se_cluster(d: pd.DataFrame, simmeasure: str = "mae") -> dict:
+    """
     Look for the given pickle file and update it with the distance
     matrix if necessary, i.e. if the updated flag is set
     :return : dictionary with the distance matrix and the indices (column dateiname) for each startendcluster
-    '''
-    if mypickle.is_file() and not updated:
-        with open(mypickle, "rb") as f:
-            return pickle.load(f)
+    """
     dists = {}
     startendclusters = list(d.startendcluster.cat.categories)
+    log.debug(f"distance mat clusters: {' '.join([str(x) for x in startendclusters])}")
     for a in startendclusters:
-        log.info(f"update_dist_matrix: distance matrix for routes in startendcluster {a}")
+        log.info(f"distance matrix for routes in startendcluster {a}")
         dsub = d[d.startendcluster == a]
         dists[str(a) + "_dateinamen"] = list(dsub.loc[:, "dateiname"])
         dists[a] = calc_dist_matrix(dsub, simmeasure=simmeasure)
-    mypickle.parents[0].mkdir(exist_ok=True)
-    log.info(f"save distance matrices and filename lists to a dict and pickle it")
-    with open(mypickle, "wb") as f:
-        pickle.dump(dists, f)
     return dists

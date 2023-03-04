@@ -76,9 +76,8 @@ def get_weather_dict(dt: datetime.datetime, lat: float, lon: float, ele: float) 
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-    log = logging.getLogger(__name__)
-    log.setLevel(logging.DEBUG)
+    from mylog import get_log
+    log = get_log()
     print(
         get_weather_dict(
             datetime.datetime(

@@ -72,14 +72,14 @@ def calc_cluster_from_dist(
 def cluster_all(
     d: pd.DataFrame,
     dists: dict,
-    most_imp_clusters: pd.DataFrame,
+    se_clusters: pd.DataFrame,
     min_routes_per_cluster: Optional[int] = None,
 ):
-    log.info("cluster {len(d)} routes in {len(most_imp_clusters)} startendclusters")
     """Cluster routes grouped by custom locations and write to disk"""
+    log.info(f"cluster_all {len(d)} routes in {len(se_clusters)} startendclusters")
     d["cluster"] = ""
     d.index = d.dateiname
-    for a in list(most_imp_clusters.startendcluster.cat.categories):
+    for a in list(se_clusters.startendcluster.cat.categories):
         dfcluster = calc_cluster_from_dist(
             dists[a],
             dists[str(a) + "_dateinamen"],
@@ -92,7 +92,7 @@ def cluster_all(
         d.groupby(["startendcluster", "cluster"])["dateiname"].count().reset_index()
     )
     clustercombis = clustercombis[clustercombis.dateiname > 0]
-    clustercombis = most_imp_clusters.merge(clustercombis, on="startendcluster")
+    clustercombis = se_clusters.merge(clustercombis, on="startendcluster")
     clustercombis.startendcluster.astype("category")
     clustercombis.cluster.astype("category")
     d["cluster"] = d.cluster.astype("category")

@@ -143,9 +143,6 @@ def read_gpx_file_list(
         ],
         ordered=True,
     )
-    # df["wochentag"] = df["wochentag"].cat.reorder_categories(
-    #     ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-    # )
     return df
 
 
@@ -162,14 +159,14 @@ def update_pickle_from_list(
 ) -> tuple[pd.DataFrame, bool]:
     """update a pickle file of gpx data with a list of gpx files"""
     if not Path(mypickle).is_file():
-        log.info(f"{mypickle} gibt es noch nicht")
+        log.info(f"{mypickle} doesn't exist, I create it")
         d = pd.DataFrame()
         fl = filelist
     else:
         with open(mypickle, "rb") as f:
             d = pickle.load(f)
         fl = [f for f in filelist if f.name not in list(d["dateiname"])]
-    log.info(f"{len(fl)} von {len(filelist)} müssen noch eingelesen werden")
+    log.info(f"{len(fl)} of {len(filelist)} have to be parsed")
     updated = len(fl) > 0
     if updated:
         d = pd.concat(
@@ -178,7 +175,7 @@ def update_pickle_from_list(
         mypickle.parents[0].mkdir(exist_ok=True)
         with open(mypickle, "wb") as f:
             pickle.dump(d, f)
-    return d, updated
+    return d
 
 
 def update_pickle_from_folder(
@@ -197,9 +194,8 @@ def update_pickle_from_folder(
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-    log = logging.getLogger(__name__)
-    log.setLevel(logging.DEBUG)
+    from mylog import get_log
+    log = get_log()
     x = read_gpx_file(Path("./data/20220904T145953000.gpx"))
     x["route_inter"] = []
     import json

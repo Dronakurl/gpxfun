@@ -3,7 +3,7 @@ import logging
 import pandas as pd
 from sklearn.neighbors import LocalOutlierFactor
 
-log = logging.getLogger("gpxfun."+__name__)
+log = logging.getLogger("gpxfun." + __name__)
 
 
 def get_data_for_one_startend(
@@ -32,12 +32,52 @@ def get_data_for_one_startend(
 
 
 def exclude_outliers(dr: pd.DataFrame, cols: list[str] = ["dauer"]) -> pd.DataFrame:
+    """
+    remove outliers of an input DataFrame
+    :param dr: pandas DataFrame, containing all columns in cols
+    :param cols: columns in DataFrame dr which are used for outlier detection, must be numeric
+    """
+    do = mark_outliers(dr, cols=cols)
+    return do[do.is_outlier == False].drop("is_outlier", axis=1)
+
+
+def mark_outliers(dr: pd.DataFrame, cols: list[str] = ["dauer"]) -> pd.DataFrame:
+    """
+    Detect outliers of an input DataFrame
+    :param dr: pandas DataFrame, containing all columns in cols
+    :param cols: columns in DataFrame dr which are used for outlier detection, must be numeric
+    """
+    if len(dr)==0:
+        return dr.copy()
     clf = LocalOutlierFactor(n_neighbors=int(len(dr) * 0.8))
-    y = clf.fit_predict(dr[cols])
-    y = pd.DataFrame(y, columns=["outliers"])
-    yX = pd.concat([y, dr[cols].reset_index(drop=False)], axis=1)
-    do = dr.loc[yX[yX.outliers > 0]["index"]]
-    log.info(f"number of input records {len(dr)} -> output {len(do)}")
+    y = pd.Series(clf.fit_predict(dr[cols]) == -1, index=dr.index).astype("bool")
+    do = dr.copy()
+    do["is_outlier"].update(y)
+    log.info(f"records: {len(dr)}, outliers: {do.is_outlier.value_counts().to_dict().get(True,'0')}")
+    for x in do[do.is_outlier].index:
+        log.debug(f"outlier in dateiname:{do.loc[x,'dateiname']}, dauer:{do.loc[x,'dauer']}")
     return do
-    # px.scatter(yX, x="dauer", y="startzeitnum", color="outliers")
-    # clf.negative_outlier_factor_
+
+
+def mark_outliers_per_cluster(
+    dr: pd.DataFrame, cols: list[str] = ["dauer"], clustercol: str = "startendcluster"
+) -> pd.DataFrame:
+    """
+    Detect outliers in an input dataframe, in clusters marked by the column in clustercol
+    :param dr: input DataFrame, containing all columns in clos
+    :param cols: List of columns that should be used in outlier detection
+    :parm clustercol: Column in dr. For each different value of clustercol, outliers are detected
+    """
+    do = dr.copy()
+    do_a = do[do[clustercol].notna()].copy()
+    do_b = do[~do[clustercol].notna()]
+    do_a["is_outlier"] = False
+    do_a = do_a.groupby(by=clustercol, group_keys=False).apply(mark_outliers, cols=cols)
+    # do_a_new=pd.DataFrame()
+    # for clusterval in list(set(list(do_a[clustercol]))):
+    #     y=mark_outliers(do_a[do_a[clustercol]==clusterval],cols=cols)
+    #     do_a_new=pd.concat([do_a_new,y])
+    # do_a=do_a_new
+    do = pd.concat([do_a, do_b], axis=0)
+    do["is_outlier"] = do["is_outlier"].fillna(False).astype("bool")
+    return do
