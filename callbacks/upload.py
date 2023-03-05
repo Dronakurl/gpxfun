@@ -9,7 +9,7 @@ import tqdm
 from app_data_functions import parse_and_cluster
 
 
-log = logging.getLogger("gpxfun." + __name__)
+log = logging.getLogger("gpxfun.callbacks." + __name__)
 
 
 @callback(
@@ -21,7 +21,7 @@ log = logging.getLogger("gpxfun." + __name__)
 )
 def upload(contents, filenames, sessionid):
     """upload gpx data to session folder and start parsing thread"""
-    log.debug("CALLBACK upload: " + str(ctx.triggered_id))
+    log.debug(str(ctx.triggered_id))
     if ctx.triggered_id == None:
         return no_update
     # create sessionid folder

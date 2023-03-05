@@ -7,7 +7,7 @@ from utilities import getfilelist, convert_bytes
 
 from app_layout import MYCOLOR
 
-log = logging.getLogger("gpxfun." + __name__)
+log = logging.getLogger("gpxfun.callbacks." + __name__)
 
 @callback(
     Output("progressbar", "value"),

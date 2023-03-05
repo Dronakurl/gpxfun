@@ -2,6 +2,7 @@ import pandas as pd
 from dash import dcc, html, callback, Output, Input, MATCH, ctx
 import dash_bootstrap_components as dbc
 import logging
+from analyzer_factory import AnalyzerFactory
 
 log = logging.getLogger("gpxfun." + __name__)
 
@@ -43,3 +44,14 @@ class AnalyzeModel(object):
         #     log.debug(f"CALLBACK updatetest {ctx.triggered_id}")
         #     return self
 
+@callback(
+    Output("analyzer_dropdown", "options"),
+    Output("analyzer_dropdown", "value"),
+    Input("sessionid", "data"),
+    prevent_initial_call=False,
+)
+def update_analyzer_dropdown(_):
+    """Initialize the dropdown for the analyzer section from available stuff"""
+    log.debug(str(ctx.triggered_id))
+    af = AnalyzerFactory().get_available_analyzers()
+    return af, af[0]

@@ -6,7 +6,7 @@ from app_data_functions import get_data_from_pickle_session
 from plots import plotaroute
 
 
-log = logging.getLogger("gpxfun." + __name__)
+log = logging.getLogger("gpxfun.callbacks." + __name__)
 
 
 @callback(
@@ -18,7 +18,7 @@ log = logging.getLogger("gpxfun." + __name__)
 )
 def showmap(storedflag, clusters, sessionid):
     """Draws a map with the most common routes"""
-    log.debug("CALLBACK showmap: " + str(ctx.triggered_id) + " " + str(clusters))
+    log.debug(str(ctx.triggered_id) + " " + str(clusters))
     if storedflag == False or clusters is None:
         return no_update
     dr, most_imp_clusters = get_data_from_pickle_session(sessionid)

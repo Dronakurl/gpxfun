@@ -7,7 +7,7 @@ from app_data_functions import get_data_from_pickle_session
 from plots import violin
 
 
-log = logging.getLogger("gpxfun." + __name__)
+log = logging.getLogger("gpxfun.callbacks." + __name__)
 
 
 @callback(
@@ -20,7 +20,7 @@ log = logging.getLogger("gpxfun." + __name__)
 )
 def showhists(violinfactor, storedflag, clusters, sessionid):
     """Show plots to analyze the times"""
-    log.debug("CALLBACK showhists: " + str(ctx.triggered_id))
+    log.debug(str(ctx.triggered_id))
     if storedflag == False or clusters is None:
         return no_update
     dr, _ = get_data_from_pickle_session(sessionid)

@@ -4,7 +4,7 @@ from pathlib import Path
 
 from dash import Input, Output, State, callback, ctx, no_update
 
-log = logging.getLogger("gpxfun." + __name__)
+log = logging.getLogger("gpxfun.callbacks." + __name__)
 
 @callback(
     Output("cluster_dropdown", "options"),
@@ -16,7 +16,7 @@ log = logging.getLogger("gpxfun." + __name__)
 )
 def update_cluster_dropdown(startendclusters, storedflag, sessionid):
     """Initialize the dropdown for the route cluster using startendcluster"""
-    log.debug("CALLBACK update_cluster_dropdown: " + str(ctx.triggered_id))
+    log.debug(str(ctx.triggered_id))
     if storedflag == False:
         return [no_update] * 2
     with open(Path("sessions") / sessionid / "most_imp_clusters.pickle", "rb") as f:

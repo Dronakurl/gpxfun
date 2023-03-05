@@ -1,19 +1,16 @@
 """ 
 A plotly-dash app for analyzing gpx data of regular routes
 """
-from pathlib import Path
 import logging
-import pandas as pd
-import plotly.express as px
 
-from dash import html, dcc, Dash, Input, Output, State, ctx, no_update, MATCH, callback
+from dash import Dash, Input, MATCH, Output, State, callback, ctx, dcc, html, no_update
 import dash_bootstrap_components as dbc
 
-from app_data_functions import  get_data_from_pickle_session
-from app_layout import serve_layout
-from mylog import get_log
 from analyzer_factory import AnalyzerFactory
-import callbacks  # pyright: ignore
+from app_data_functions import get_data_from_pickle_session
+from app_layout import serve_layout
+import callbacks
+from mylog import get_log  # pyright: ignore
 
 log = get_log("gpxfun", logging.DEBUG)
 
@@ -24,20 +21,9 @@ dashapp.title = "Bike route analyzer"
 dashapp.layout = serve_layout
 
 
-@dashapp.callback(
-    Output("analyzer_dropdown", "options"),
-    Output("analyzer_dropdown", "value"),
-    Input("sessionid", "data"),
-    prevent_initial_call=False,
-)
-def update_analyzer_dropdown(_):
-    """Initialize the dropdown for the analyzer section from available stuff"""
-    log.debug("CALLBACK update_analyzer_dropdown: " + str(ctx.triggered_id))
-    af = AnalyzerFactory().get_available_analyzers()
-    return af, af[0]
 
 
-@dashapp.callback(
+@callback(
     Output("analyzeroptionscard", "children"),
     State("sessionid", "data"),
     Input("storedflag", "data"),

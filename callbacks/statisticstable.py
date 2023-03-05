@@ -9,7 +9,7 @@ import plotly.express as px
 from app_data_functions import get_data_from_pickle_session, parse_and_cluster
 from plots import TEMPLATE, plotaroute, violin
 
-log = logging.getLogger("gpxfun." + __name__)
+log = logging.getLogger("gpxfun.callbacks." + __name__)
 
 @callback(
     Output("statisticsnewtable", "children"),
@@ -21,7 +21,7 @@ log = logging.getLogger("gpxfun." + __name__)
 )
 def statisticstable(storedflag, clusters, sessionid):
     """table with statistics"""
-    log.debug("CALLBACK statisticstable: " + str(ctx.triggered_id))
+    log.debug(str(ctx.triggered_id))
     if storedflag == False or clusters is None:
         return no_update, no_update
     dr, _ = get_data_from_pickle_session(sessionid)
