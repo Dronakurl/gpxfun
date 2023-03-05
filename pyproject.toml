@@ -1,16 +1,41 @@
+[tool.poetry]
+name = "gpxfun"
+version = "0.1.0"
+description = "A plotly-dash app for analyzing gpx data of regular 🚲 routes"
+authors = ["Dronakurl"]
+license = "MIT License"
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+]
+
 [tool.pyright]
 include = ["*.py","analyzer/**"]
 exclude = ["**/node_modules",
     "**/__pycache__",
     "Archiv/**"
 ]
-# ignore = ["src/oldstuff"]
-# defineConstant = { DEBUG = true }
-# stubPath = "src/stubs"
-
 typeCheckingMode = "off"
 reportMissingTypeStubs = false
 useLibraryCodeForTypes = false
-
 pythonVersion = "3.10"
 pythonPlatform = "Linux"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+dash = "^2.8.1"
+pandas = "^1.5.3"
+dash-bootstrap-components = "^1.4.0"
+dash-bootstrap-templates = "^1.0.8"
+tqdm = "^4.65.0"
+similaritymeasures = "^0.7.0"
+hdbscan = "^0.8.29"
+gpxpy = "^1.5.0"
+timezonefinder = "^6.1.9"
+meteostat = "^1.6.5"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+

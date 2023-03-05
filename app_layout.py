@@ -24,7 +24,7 @@ def getsessionids():
 def get_header():
     return html.H4(
         [
-            html.B("Bike route analyzer", style={"color": MYCOLOR}),
+            html.B("🚲 Bike route analyzer 🚲", style={"color": MYCOLOR}),
             html.Span(" - What's the fastest way from A to B? "),
         ],
         style={"margin-top": "5px", "text-align": "center"},

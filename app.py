@@ -10,7 +10,7 @@ import logging
 import pandas as pd
 import plotly.express as px
 
-from dash import Dash, Input, Output, State, ctx, no_update
+from dash import html, dcc, Dash, Input, Output, State, ctx, no_update, MATCH, callback
 import dash_bootstrap_components as dbc
 from dash_bootstrap_templates import load_figure_template
 from tqdm import tqdm
@@ -20,6 +20,7 @@ from utilities import getfilelist, convert_bytes
 from app_data_functions import parse_and_cluster, get_data_from_pickle_session
 from app_layout import serve_layout, MYCOLOR
 from mylog import get_log
+from analyzer_factory import AnalyzerFactory
 
 log = get_log("gpxfun", logging.DEBUG)
 
@@ -283,7 +284,7 @@ def statisticstable(storedflag, clusters, sessionid):
     # >>> print(location.address)
     # Potsdamer Platz, Mitte, Berlin, 10117, Deutschland, European Union
     # get plot
-    dx = dr[["dateiname","startdatetime", "startendcluster", "cluster"]].copy()
+    dx = dr[["dateiname", "startdatetime", "startendcluster", "cluster"]].copy()
     cats = list(dx.startendcluster.cat.categories)
     dx["startendcluster"] = dx.startendcluster.cat.add_categories("other")
     dx["startendcluster"] = dx.startendcluster.fillna("other")
@@ -325,34 +326,47 @@ def statisticstable(storedflag, clusters, sessionid):
         style={
             "font-size": "8pt",
             "font-family": "Roboto Mono, mono",
-            "padding":"0px"
-        }
+            "padding": "0px",
+        },
     )
     return newtable, fig
 
-# @dashapp.callback(
-#     Output("cluster_dropi", "options"),
-#     Output("cluster_dropdown", "value"),
-#     Input("startend_cluster_dropdown", "value"),
-#     Input("storedflag", "data"),
-#     State("sessionid", "data"),
-#     prevent_initial_call=True,
-# )
-# def update_analyzer_dropdown(startendclusters, storedflag, sessionid):
-#     """Initialize the dropdown for the route cluster using startendcluster"""
-#     log.debug("CALLBACK update_cluster_dropdown: " + str(ctx.triggered_id))
-#     if storedflag == False:
-#         return [no_update] * 2
-#     with open(Path("sessions") / sessionid / "most_imp_clusters.pickle", "rb") as f:
-#         most_imp_clusters = pickle.load(f)
-#     clusters = most_imp_clusters[
-#         most_imp_clusters.startendcluster.isin([int(se) for se in startendclusters])
-#     ].cluster
-#     cluster_dropdown_opts = {}
-#     for clu in list(clusters):
-#         cluster_dropdown_opts[clu] = "Route " + str(clu)
-#     # cluster_dropdown_opts["all"]="all routes"
-#     return cluster_dropdown_opts, clusters
+
+@dashapp.callback(
+    Output("analyzer_dropdown", "options"),
+    Output("analyzer_dropdown", "value"),
+    Input("sessionid", "data"),
+    prevent_initial_call=False,
+)
+def update_analyzer_dropdown(_):
+    """Initialize the dropdown for the analyzer section from available stuff"""
+    log.debug("CALLBACK update_analyzer_dropdown: " + str(ctx.triggered_id))
+    af = AnalyzerFactory(pd.DataFrame()).get_available_analyzers()
+    return af, af[0]
+
+
+@dashapp.callback(
+    Output("analyzeroptionscard", "children"),
+    State("sessionid", "data"),
+    Input("storedflag", "data"),
+    Input("analyzer_dropdown", "value"),
+    prevent_initial_call=True,
+)
+def update_analyzer_dropdown(sessionid, storedflag, analyzerid):
+    """Initialize the dropdown for the route cluster using startendcluster"""
+    log.debug("CALLBACK update_analyzer_dropdown: " + str(ctx.triggered_id))
+    if storedflag == False:
+        return no_update
+    dr, _ = get_data_from_pickle_session(sessionid)
+    an = AnalyzerFactory(dr).get_analyzer(analyzerid=analyzerid)
+    return an.DashSettings(an)
+
+    # Output("analyerresultscars","children"),
+
+    # dbc.Button("save file",id={'type': 'savebutton', 'index':filename},color="primary")
+    # Input({'type': 'savebutton', 'index': ALL}, 'n_clicks'),
+    #     fn=ctx.triggered_id["index"]
+
 
 app = dashapp.server
 app.secret_key = "super secret key"  # pyright: ignore
@@ -363,3 +377,4 @@ if __name__ == "__main__":
     dashapp.run_server(debug=True, host="0.0.0.0")
 
 # start with: gunicorn app:app -b :8000
+# start testing servier with: poetry run python -m app

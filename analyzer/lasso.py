@@ -14,7 +14,7 @@ class AnalyzeLasso(AnalyzeModel):
             "cluster",
             "dauer",
             "startzeit",
-            # "temp",
+            "temp",
         ],
     ):
         super().__init__(data)
@@ -34,3 +34,4 @@ class AnalyzeLasso(AnalyzeModel):
 
     def output(self):
         return self.intercept
+
