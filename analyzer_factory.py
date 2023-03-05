@@ -6,9 +6,8 @@ log = logging.getLogger("gpxfun." + __name__)
 
 
 class AnalyzerFactory(object):
-    def __init__(self, data: pd.DataFrame):
+    def __init__(self):
         self.avail_analyzers = self.get_available_analyzers()
-        self.d = data
 
     def get_available_analyzers(self):
         al = [x for x in dir(analyzer) if x.startswith("Analyze")]
@@ -17,8 +16,11 @@ class AnalyzerFactory(object):
 
     def get_analyzer(self, analyzerid: str):
         log.debug(f"get analyzer {analyzerid}")
-        return eval("analyzer." + analyzerid)(self.d)
+        return eval("analyzer." + analyzerid)()
 
+    def get_dash_controls(self, analyzerid: str):
+        log.debug(f"get dash controls {analyzerid}")
+        return eval("analyzer." + analyzerid)()
 
 if __name__ == "__main__":
     from mylog import get_log
