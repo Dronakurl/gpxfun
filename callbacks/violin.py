@@ -42,14 +42,20 @@ def clickondata(clickdata, clusters, storedflag, sessionid):
     log.debug("CALLBACK clickondata: " + str(ctx.triggered_id))
     if storedflag == False or clusters is None:
         return no_update
-    dr, _ = get_data_from_pickle_session(sessionid)
-    if clickdata is not None:
-        # I don't know, why I need this, but the given clickdata is not a proper dict at first
-        clickeddict = json.loads(json.dumps(clickdata))
-        # import pdb; pdb.set_trace()
-        clicked_file = clickeddict["points"][0]["customdata"][0]
-        clickedseries = dr[dr["dateiname"] == clicked_file].iloc[0]
-        clickedseries = clickedseries.drop(["route_inter"])
+    if clickdata is not None :
+        if "customdata" not in str(clickdata):
+            return "Disable the violin plot from the legend to click on points below the violin chart"
+        try:
+            # I don't know, why I need this, but the given clickdata is not a proper dict at first
+            clickeddict = json.loads(json.dumps(clickdata))
+            # import pdb; pdb.set_trace()
+            clicked_file = clickeddict["points"][0]["customdata"][0]
+            dr, _ = get_data_from_pickle_session(sessionid)
+            clickedseries = dr[dr["dateiname"] == clicked_file].iloc[0]
+            clickedseries = clickedseries.drop(["route_inter"])
+        except:
+            log.error(f"clickdata is strange {clickdata}")
+            return no_update
         return "\n".join(f"{clickedseries}".split("\n")[0:-1])
     else:
         return "Click on a data point to show filename and infos"

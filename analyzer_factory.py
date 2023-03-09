@@ -1,4 +1,3 @@
-import pandas as pd
 import logging
 import analyzer
 
@@ -24,7 +23,7 @@ class AnalyzerFactory(object):
                 f"analyzerid {analyzerid} not found in list of available"
                 " analyzers. Expected one from {' '.join(self.avail_analyzers)}"
             )
-        return eval("analyzer." + analyzerid)()
+        return eval("analyzer." + analyzerid)
 
     def get_dash_inputs(self, analyzerid: str):
         log.debug(f"get dash controls {analyzerid}")

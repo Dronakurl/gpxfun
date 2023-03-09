@@ -171,7 +171,8 @@ def get_violintab():
                     },
                 )
             ),
-        ]
+        ],
+        style={"margin-top": "5px"},
     )
     dataandcontrols = [violinfactor_dropdown, violinfactor_selected_file_txt]
     violinplot = dcc.Graph(id="violinplot", figure=blank_fig())

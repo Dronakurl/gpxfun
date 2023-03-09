@@ -64,8 +64,8 @@ class AnalyzeLinear(AnalyzeModel):
                     value=list(AnalyzeLinear.varformatdict.keys()),
                     id=id | dict(id="vars"),
                     # labelClassName="blocky",
-                    labelStyle={"display":"block"},
-                    inputStyle={"display":"inline", "padding-right":"20px"}
+                    labelStyle={"display": "block"},
+                    inputStyle={"display": "inline", "padding-right": "20px"},
                 )
             ]
             + cls.dash_inputs_args(id)
@@ -88,8 +88,8 @@ class AnalyzeLinear(AnalyzeModel):
             data=self.coeffs.to_dict("records"),
             filter_action="native",
             filter_query="{value} s> 0.00001 || {value} s<-00000.1",
-            style_header={"font-weight":"bold", "background-color":"var(--bs-card-cap-bg)"},
-            style_filter={"display":"none","height":"0px"}
+            style_header={"font-weight": "bold", "background-color": "var(--bs-card-cap-bg)"},
+            style_filter={"display": "none", "height": "0px"},
         )
         return datatable
 
@@ -140,12 +140,13 @@ class AnalyzeRidgeCV(AnalyzeLinear):
     Input({"component": "analyzerinputs", "analyzerid": MATCH, "id": ALL}, "id"),
     Input("storedflag", "data"),
     State("sessionid", "data"),
+    Input("startend_cluster_dropdown", "value"),
     prevent_initial_call=True,
 )
-def callback_linear(values, ids, storedflag, sessionid):
-    if not storedflag or len(ids)==0:
+def callback_linear(values, ids, storedflag, sessionid, startendcluster):
+    if not storedflag or len(ids) == 0 or len(startendcluster) == 0:
         return no_update
-    log.debug(f"callback linear: values = {values} ids = {ids} ")
+    log.debug(f"callback linear: values = {values} ids = {ids} startendcluster = {startendcluster} ")
     analyzerid = ids[0].get("analyzerid")
     log.info(f"callback linear analyzerid = {analyzerid}")
     ids = [x.get("id") for x in ids]
@@ -158,7 +159,7 @@ def callback_linear(values, ids, storedflag, sessionid):
         log.warning("callback linear called with missing arguments")
         return no_update
     dr, _ = get_data_from_pickle_session(sessionid)
-    dr = get_data_for_one_startend(dr, startendcluster=0)
+    dr = get_data_for_one_startend(dr, startendcluster=startendcluster)
     a = eval(analyzerid)(dr)
     a.analyze(**kwargs)
     return a.dash_output()

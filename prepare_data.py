@@ -2,12 +2,13 @@ import logging
 
 import pandas as pd
 from sklearn.neighbors import LocalOutlierFactor
+from typing import Union
 
 log = logging.getLogger("gpxfun." + __name__)
 
 
 def get_data_for_one_startend(
-    d: pd.DataFrame, startendcluster: int = 1, minrecords: int = 10
+    d: pd.DataFrame, startendcluster: Union[int, list] = 1, minrecords: int = 10
 ) -> pd.DataFrame:
     """
     Filter the data of one startendcluster and apply data transformations needed for
@@ -18,10 +19,11 @@ def get_data_for_one_startend(
     :param minrecords: minimum number of records for each route cluster,
                 route clusters with less amount of records are put into "other" cluster
     """
-    dr = d[d.startendcluster == startendcluster].copy()
-    log.info(
-        f"Filter {len(d)} points to secluster {startendcluster} -> {len(dr)} points"
-    )
+    if isinstance(startendcluster, int):
+        startendcluster = [startendcluster]
+    startendcluster = [int(x) for x in startendcluster]
+    dr = d[d.startendcluster.isin(startendcluster)].copy()
+    log.info(f"Filter {len(d)} points to secluster {startendcluster} -> {len(dr)} points")
     clustercounter = dr.cluster.value_counts().sort_values(ascending=False)
     imp_clusters = list(clustercounter[clustercounter >= minrecords].index)
     dr.cluster = dr.cluster.apply(lambda x: x if x in imp_clusters else "other")
@@ -47,7 +49,7 @@ def mark_outliers(dr: pd.DataFrame, cols: list[str] = ["dauer"]) -> pd.DataFrame
     :param dr: pandas DataFrame, containing all columns in cols
     :param cols: columns in DataFrame dr which are used for outlier detection, must be numeric
     """
-    if len(dr)==0:
+    if len(dr) == 0:
         return dr.copy()
     clf = LocalOutlierFactor(n_neighbors=int(len(dr) * 0.8))
     y = pd.Series(clf.fit_predict(dr[cols]) == -1, index=dr.index).astype("bool")

@@ -9,6 +9,7 @@ class AnalyzeModel(object):
         "jahreszeit": "Season",
         "wochentag": "Weekday",
         "cluster": "Route cluster",
+        "startendcluster": "Start/end cluster",
         "startzeit": "Start time",
         "temp": "Temperature",
     }
