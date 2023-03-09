@@ -3,48 +3,24 @@ A plotly-dash app for analyzing gpx data of regular routes
 """
 import logging
 
-from dash import Dash, Input, MATCH, Output, State, callback, ctx, dcc, html, no_update
+from dash import Dash
 import dash_bootstrap_components as dbc
 
-from analyzer_factory import AnalyzerFactory
-from app_data_functions import get_data_from_pickle_session
 from app_layout import serve_layout
-import callbacks
+import callbacks  # pyright: ignore
 from mylog import get_log  # pyright: ignore
 
 log = get_log("gpxfun", logging.DEBUG)
 
+from plots import TEMPLATE
+
 dbc_css = "https://cdn.jsdelivr.net/gh/AnnMarieW/dash-bootstrap-templates/dbc.css"
-dashapp = Dash(__name__, external_stylesheets=[dbc.themes.VAPOR, dbc_css])
+dashapp = Dash(
+    __name__, external_stylesheets=[eval("dbc.themes." + TEMPLATE.upper()), dbc_css]
+)
 dashapp.title = "Bike route analyzer"
 
 dashapp.layout = serve_layout
-
-
-
-
-@callback(
-    Output("analyzeroptionscard", "children"),
-    State("sessionid", "data"),
-    Input("storedflag", "data"),
-    Input("analyzer_dropdown", "value"),
-    prevent_initial_call=True,
-)
-def update_analyzer_dropdown(sessionid, storedflag, analyzerid):
-    """Initialize the dropdown for the route cluster using startendcluster"""
-    log.debug("CALLBACK update_analyzer_dropdown: " + str(ctx.triggered_id))
-    if storedflag == False:
-        return no_update
-    dr, _ = get_data_from_pickle_session(sessionid)
-    # an = AnalyzerFactory(dr).get_analyzer(analyzerid=analyzerid)
-    # return an.DashSettings(an)
-    return no_update
-
-    # Output("analyerresultscars","children"),
-
-    # dbc.Button("save file",id={'type': 'savebutton', 'index':filename},color="primary")
-    # Input({'type': 'savebutton', 'index': ALL}, 'n_clicks'),
-    #     fn=ctx.triggered_id["index"]
 
 
 app = dashapp.server

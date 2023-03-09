@@ -4,7 +4,7 @@ from pathlib import Path
 
 from dash import Input, Output, State, callback, ctx, no_update
 
-log = logging.getLogger("gpxfun.callbacks." + __name__)
+log = logging.getLogger("gpxfun." + __name__)
 
 @callback(
     Output("cluster_dropdown", "options"),

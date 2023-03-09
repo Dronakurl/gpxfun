@@ -1,15 +1,17 @@
 import logging
 
-from dash import Dash, Input, MATCH, Output, State, callback, ctx, dcc, html, no_update
+from dash import Input, Output, State, callback, ctx, no_update, dash_table
 from dash_bootstrap_templates import load_figure_template
-import dash_bootstrap_components as dbc
+
+# import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.express as px
 
-from app_data_functions import get_data_from_pickle_session, parse_and_cluster
-from plots import TEMPLATE, plotaroute, violin
+from app_data_functions import get_data_from_pickle_session
+from plots import TEMPLATE
 
-log = logging.getLogger("gpxfun.callbacks." + __name__)
+log = logging.getLogger("gpxfun." + __name__)
+
 
 @callback(
     Output("statisticsnewtable", "children"),
@@ -50,6 +52,7 @@ def statisticstable(storedflag, clusters, sessionid):
     )
     fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
     # Get statisticstable
+    dx.cluster = dx.cluster.str.extract("\d+_(.+)")
     dp = pd.pivot_table(
         dx,
         "dateiname",
@@ -59,23 +62,38 @@ def statisticstable(storedflag, clusters, sessionid):
         margins=True,
         observed=True,
         dropna=False,
+    ).reset_index()
+    dp.columns = dp.columns.droplevel()
+    dp = dp.rename({"": "Cluster"}, axis=1)
+    namemapper = lambda x: x if not str(x).isdigit() else "Startendcluster " + str(x)
+    cols = [{"name": namemapper(i), "id": str(i)} for i in dp.columns]
+    datatable = dash_table.DataTable(
+        columns=cols,
+        data=dp.to_dict("records"),
+        # filter_action="native",
+        style_header={"font-weight": "bold", "background-color": "var(--bs-card-cap-bg)"},
+        style_cell=dict(width="14%"),
+        style_cell_conditional=[{"if":{"column_id":"All"},"background-color": "var(--bs-card-cap-bg)"}],
+        style_data_conditional=[{"if":{"row_index":len(dp)-1},"background-color": "var(--bs-card-cap-bg)"}],
+
+        # style_table=dict(width="60%")
+        # style_filter={"display":"none","height":"0px"}
     )
-    dp = dp.sort_index()
-    # dp.columns = dp.columns.droplevel()
-    dp.columns = pd.MultiIndex.from_tuples(
-        [("Startend cluster", x[1]) for x in list(dp.columns)]
-    )
-    dp.index.name = "Cluster"
-    newtable = dbc.Table.from_dataframe(
-        dp,
-        striped=True,
-        bordered=True,
-        hover=True,
-        index=True,
-        style={
-            "font-size": "8pt",
-            "font-family": "Roboto Mono, mono",
-            "padding": "0px",
-        },
-    )
-    return newtable, fig
+    # dp.columns = pd.MultiIndex.from_tuples(
+    #     [("Startend cluster", x[1]) for x in list(dp.columns)]
+    # )
+    # dp.index.name = "Cluster"
+    # newtable = dbc.Table.from_dataframe(
+    #     dp,
+    #     striped=False,
+    #     bordered=True,
+    #     hover=False,
+    #     index=True,
+    #     style={
+    #         "font-size": "8pt",
+    #         "font-family": "Roboto Mono, mono",
+    #         "padding": "0px",
+    #         "background-color": "var(--bs-body-bg)"
+    #     },
+    # )
+    return datatable, fig

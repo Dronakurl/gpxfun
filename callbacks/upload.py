@@ -9,7 +9,7 @@ import tqdm
 from app_data_functions import parse_and_cluster
 
 
-log = logging.getLogger("gpxfun.callbacks." + __name__)
+log = logging.getLogger("gpxfun." + __name__)
 
 
 @callback(

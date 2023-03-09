@@ -11,7 +11,8 @@ from plots import blank_fig
 import dash_bootstrap_components as dbc
 
 log = logging.getLogger("gpxfun." + __name__)
-MYCOLOR = "#ea39b8"
+# MYCOLOR = "#ea39b8"
+MYCOLOR = "white"
 
 
 def getsessionids():
@@ -35,9 +36,7 @@ def get_header():
 def get_loadstuff():
     uploadfield = dcc.Upload(
         id="upload-data",
-        children=dbc.Button(
-            "Upload gpx files"
-        ),  
+        children=dbc.Button("Upload gpx files"),
         multiple=True,
     )
     progessbar = dbc.Progress(
@@ -58,8 +57,7 @@ def get_loadstuff():
             "padding": "5px",
             "margin-top": "5px",
             "font-size": "9pt",
-            "font-family": "Ubuntu Mono, mono"
-            # "display": "none",
+            "font-family": "Ubuntu Mono, mono",
         },
     )
     startend_cluster_dropdown = dcc.Dropdown(
@@ -112,7 +110,8 @@ def get_loadstuff():
             dbc.CardHeader("Load GPX data"),
             dbc.CardBody([uploadfield, progessbar, picksessionid, load_textarea]),
             # dbc.CardBody([uploadfield, progessbar,  load_textarea]),
-        ]
+        ],
+        style={"margin-bottom": "5px"},
     )
     return [loadcard, dropdowncard]
 
@@ -225,7 +224,7 @@ def get_analyzertab():
         [
             dbc.CardHeader("Results from chosen analyzer"),
             dbc.CardBody("", id="analyzerresultscard"),
-        ]
+        ],
     )
     return dbc.Tab(
         dbc.Card(
@@ -257,6 +256,7 @@ def serve_layout():
             get_analyzertab(),
         ],
         active_tab="statistics_tab",
+        style={"margin-bottom": "5px"},
     )
 
     mainwindow = dbc.Row([dbc.Col(get_loadstuff(), width=3), dbc.Col(tabs, width=9)])

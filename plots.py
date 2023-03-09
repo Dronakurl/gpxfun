@@ -13,7 +13,9 @@ import plotly.graph_objects as go
 
 log = logging.getLogger("gpxfun." + __name__)
 
-TEMPLATE = "vapor"
+# TEMPLATE = "vapor"
+TEMPLATE = "sketchy"
+# TEMPLATE = "darkly"
 
 
 def get_plotting_zoom_level(longitudes=None, latitudes=None, lonlat_pairs=None):
@@ -239,18 +241,18 @@ def blank_fig():
     return fig
 
 
-if __name__ == "__main__":
-    dx = d[["startdatetime", "startendcluster", "cluster"]].copy()
-    dx["startendcluster"] = dx.startendcluster.cat.add_categories("other").fillna(
-        "other"
-    )
-    # dx["cluster"]=dx.cluster.cat.add_categories("other").fillna("other")
-    px.histogram(
-        dx,
-        x="startdatetime",
-        color="startendcluster",
-        category_orders={"startendcluster": [0, 1, "other"]},
-    )
+# if __name__ == "__main__":
+#     dx = d[["startdatetime", "startendcluster", "cluster"]].copy()
+#     dx["startendcluster"] = dx.startendcluster.cat.add_categories("other").fillna(
+#         "other"
+#     )
+#     # dx["cluster"]=dx.cluster.cat.add_categories("other").fillna("other")
+#     px.histogram(
+#         dx,
+#         x="startdatetime",
+#         color="startendcluster",
+#         category_orders={"startendcluster": [0, 1, "other"]},
+#     )
 
 
 # violin(dr,"wochentag")

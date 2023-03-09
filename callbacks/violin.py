@@ -7,7 +7,7 @@ from app_data_functions import get_data_from_pickle_session
 from plots import violin
 
 
-log = logging.getLogger("gpxfun.callbacks." + __name__)
+log = logging.getLogger("gpxfun." + __name__)
 
 
 @callback(

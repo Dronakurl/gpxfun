@@ -4,3 +4,4 @@ from .update_progressbar import update_progessbar
 from .upload import upload
 from .violin import showhists, clickondata
 from .showmap import showmap
+from .choose_analyzer import update_analyzer_dropdown, choose_analyzer
