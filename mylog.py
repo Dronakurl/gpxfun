@@ -1,9 +1,11 @@
 import logging
 import tqdm
+import colorlog
 
-class TqdmLoggingHandler(logging.Handler):
+class TqdmLoggingHandler(colorlog.StreamHandler):
     def __init__(self, level=logging.NOTSET):
         super().__init__(level)
+        self.setFormatter(colorlog.ColoredFormatter("%(log_color)s%(levelname)s:%(name)s:%(message)s"))
 
     def emit(self, record):
         try:
@@ -13,11 +15,10 @@ class TqdmLoggingHandler(logging.Handler):
         except Exception:
             self.handleError(record)
 
-def get_log(name: str="default", level=logging.DEBUG):
+
+def get_log(name: str = "default", level=logging.DEBUG):
     log = logging.getLogger(name)
     log.setLevel(level)
-    formatter = logging.Formatter(logging.BASIC_FORMAT)
-    hdlr=TqdmLoggingHandler()
-    hdlr.setFormatter(formatter) 
+    hdlr = TqdmLoggingHandler()
     log.addHandler(hdlr)
     return log

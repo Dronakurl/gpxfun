@@ -59,7 +59,7 @@ def calc_dist_matrix_per_se_cluster(d: pd.DataFrame, simmeasure: str = "mae") ->
     """
     Look for the given pickle file and update it with the distance
     matrix if necessary, i.e. if the updated flag is set
-    :return : dictionary with the distance matrix and the indices (column dateiname) for each startendcluster
+    :return : dictionary with the distance matrix and the indices (column filename) for each startendcluster
     """
     dists = {}
     startendclusters = list(d.startendcluster.cat.categories)
@@ -67,6 +67,6 @@ def calc_dist_matrix_per_se_cluster(d: pd.DataFrame, simmeasure: str = "mae") ->
     for a in startendclusters:
         log.info(f"distance matrix for routes in startendcluster {a}")
         dsub = d[d.startendcluster == a]
-        dists[str(a) + "_dateinamen"] = list(dsub.loc[:, "dateiname"])
+        dists[str(a) + "_filenamen"] = list(dsub.loc[:, "filename"])
         dists[a] = calc_dist_matrix(dsub, simmeasure=simmeasure)
     return dists

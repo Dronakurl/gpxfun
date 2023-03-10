@@ -2,17 +2,20 @@
 Layout for the dash app, to be used in the main app.py
 """
 # ea39b8
-import uuid
 import logging
-from utilities import getdirlist
+import uuid
 
-from dash import dcc, html, dash_table
-from plots import blank_fig
+from dash import dash_table, dcc, html
 import dash_bootstrap_components as dbc
+
+from plots import blank_fig
+from prepare_data import y_variables_dict
+from utilities import getdirlist
+from analyzer.analyzemodel import varformatdict
 
 log = logging.getLogger("gpxfun." + __name__)
 # MYCOLOR = "#ea39b8"
-MYCOLOR = "white"
+MYCOLOR = "grey"
 
 
 def getsessionids():
@@ -44,7 +47,7 @@ def get_loadstuff():
         id="progressbar",
         label="no files to load",
         color=MYCOLOR,
-        style={"color": "black", "margin-bottom": "10px", "margin-top": "10px"},
+        style={"color": "black", "margin-bottom": "10px", "margin-top": "10px", "height": "20px"},
     )
     load_textarea = dcc.Textarea(
         id="load_textarea",
@@ -84,6 +87,11 @@ def get_loadstuff():
         },
         multi=True,
     )
+    target_variable_dropdown = dcc.Dropdown(
+        options=y_variables_dict,
+        value=list(y_variables_dict.keys())[0],
+        id="target_variable_dropdown",
+    )
     opts = getsessionids()
     picksessionid = dcc.Dropdown(
         options=opts,
@@ -97,12 +105,7 @@ def get_loadstuff():
     dropdowncard = dbc.Card(
         [
             dbc.CardHeader("Select routes to analyze"),
-            dbc.CardBody(
-                [
-                    startend_cluster_dropdown,
-                    cluster_dropdown,
-                ]
-            ),
+            dbc.CardBody([startend_cluster_dropdown, cluster_dropdown, target_variable_dropdown]),
         ]
     )
     loadcard = dbc.Card(
@@ -136,12 +139,7 @@ def get_violintab():
             dbc.CardHeader("Select a factor to analyze"),
             dbc.CardBody(
                 dcc.Dropdown(
-                    options={
-                        "startendcluster": "Start/End Cluster",
-                        "cluster": "Cluster",
-                        "wochentag": "Weekday",
-                        "jahreszeit": "Season",
-                    },
+                    options=varformatdict,
                     value="cluster",
                     id="violinfactor",
                     style={
@@ -227,6 +225,11 @@ def get_analyzertab():
             dbc.CardBody("", id="analyzerresultscard"),
         ],
     )
+    analyzerdataset = dbc.Card(
+        [dbc.CardHeader("Model data set"), dbc.CardBody("", id="analyzernodatapoints")],
+        style={"margin-top": "5px"},
+    )
+
     return dbc.Tab(
         dbc.Card(
             [
@@ -234,7 +237,7 @@ def get_analyzertab():
                 dbc.CardBody(
                     dbc.Row(
                         [
-                            dbc.Col([analyzer_dropdown, analyzeroptions], width=4),
+                            dbc.Col([analyzer_dropdown, analyzeroptions, analyzerdataset], width=4),
                             dbc.Col(analyzerresults, width=8),
                         ]
                     )

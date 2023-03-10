@@ -2,13 +2,19 @@ import logging
 
 import pandas as pd
 from sklearn.neighbors import LocalOutlierFactor
-from typing import Union
+from typing import Union, Optional
 
 log = logging.getLogger("gpxfun." + __name__)
 
+y_variables_dict = dict(duration="Duration [min]", speed="Speed [km/h]", crowspeed="Crow Speed [km/h]")
 
-def get_data_for_one_startend(
-    d: pd.DataFrame, startendcluster: Union[int, list] = 1, minrecords: int = 10
+
+def get_prepared_data(
+    d: pd.DataFrame,
+    cluster: Optional[list] = None,
+    startendcluster: Optional[Union[int, list]] = None,
+    minrecords: int = 10,
+    y_variable: str = "duration",
 ) -> pd.DataFrame:
     """
     Filter the data of one startendcluster and apply data transformations needed for
@@ -19,21 +25,29 @@ def get_data_for_one_startend(
     :param minrecords: minimum number of records for each route cluster,
                 route clusters with less amount of records are put into "other" cluster
     """
+    dr = d
     if isinstance(startendcluster, int):
         startendcluster = [startendcluster]
-    startendcluster = [int(x) for x in startendcluster]
-    dr = d[d.startendcluster.isin(startendcluster)].copy()
+    if startendcluster is not None:
+        startendcluster = [int(x) for x in startendcluster]
+        dr = dr[dr.startendcluster.isin(startendcluster)].copy()
+    if cluster is not None:
+        dr = dr[dr.cluster.isin(cluster)].copy()
+    if len(dr) == 0:
+        log.warning(f"with startendcluster {startendcluster} and cluster {cluster}, no data found")
+        return dr
     log.info(f"Filter {len(d)} points to secluster {startendcluster} -> {len(dr)} points")
     clustercounter = dr.cluster.value_counts().sort_values(ascending=False)
     imp_clusters = list(clustercounter[clustercounter >= minrecords].index)
     dr.cluster = dr.cluster.apply(lambda x: x if x in imp_clusters else "other")
-    dr["startzeitnum"] = dr.startzeit.apply(lambda x: x.hour + x.minute / 60.0)
-    dr["startzeit"] = pd.cut(dr.startzeitnum, 4)
+    dr["starttimenum"] = dr.starttime.apply(lambda x: x.hour + x.minute / 60.0)
+    dr["starttime"] = pd.cut(dr.starttimenum, 4)
     dr["temp"] = pd.cut(dr.temp, 4)
+    dr = exclude_outliers(dr, cols=[y_variable])
     return dr
 
 
-def exclude_outliers(dr: pd.DataFrame, cols: list[str] = ["dauer"]) -> pd.DataFrame:
+def exclude_outliers(dr: pd.DataFrame, cols: list[str] = ["duration"]) -> pd.DataFrame:
     """
     remove outliers of an input DataFrame
     :param dr: pandas DataFrame, containing all columns in cols
@@ -43,7 +57,7 @@ def exclude_outliers(dr: pd.DataFrame, cols: list[str] = ["dauer"]) -> pd.DataFr
     return do[do.is_outlier == False].drop("is_outlier", axis=1)
 
 
-def mark_outliers(dr: pd.DataFrame, cols: list[str] = ["dauer"]) -> pd.DataFrame:
+def mark_outliers(dr: pd.DataFrame, cols: list[str] = ["duration"]) -> pd.DataFrame:
     """
     Detect outliers of an input DataFrame
     :param dr: pandas DataFrame, containing all columns in cols
@@ -57,12 +71,12 @@ def mark_outliers(dr: pd.DataFrame, cols: list[str] = ["dauer"]) -> pd.DataFrame
     do["is_outlier"].update(y)
     log.info(f"records: {len(dr)}, outliers: {do.is_outlier.value_counts().to_dict().get(True,'0')}")
     for x in do[do.is_outlier].index:
-        log.debug(f"outlier in dateiname:{do.loc[x,'dateiname']}, dauer:{do.loc[x,'dauer']}")
+        log.debug(f"outlier in filename:{do.loc[x,'filename']}, duration:{do.loc[x,'duration']}")
     return do
 
 
 def mark_outliers_per_cluster(
-    dr: pd.DataFrame, cols: list[str] = ["dauer"], clustercol: str = "startendcluster"
+    dr: pd.DataFrame, cols: list[str] = ["duration"], clustercol: str = "startendcluster"
 ) -> pd.DataFrame:
     """
     Detect outliers in an input dataframe, in clusters marked by the column in clustercol

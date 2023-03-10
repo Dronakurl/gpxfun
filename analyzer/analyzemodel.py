@@ -4,16 +4,17 @@ import logging
 log = logging.getLogger("gpxfun." + __name__)
 
 
-class AnalyzeModel(object):
-    varformatdict = {
-        "jahreszeit": "Season",
-        "wochentag": "Weekday",
-        "cluster": "Route cluster",
-        "startendcluster": "Start/end cluster",
-        "startzeit": "Start time",
-        "temp": "Temperature",
-    }
+varformatdict = {
+    "season": "Season",
+    "weekday": "Weekday",
+    "cluster": "Route cluster",
+    "startendcluster": "Start/end cluster",
+    "starttime": "Start time",
+    "temp": "Temperature",
+}
 
+class AnalyzeModel(object):
+    varformatdict = varformatdict 
     def __init__(self, data: pd.DataFrame):
         self.d = data
 

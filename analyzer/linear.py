@@ -17,7 +17,7 @@ import pandas as pd
 from sklearn import linear_model
 
 from app_data_functions import get_data_from_pickle_session
-from prepare_data import get_data_for_one_startend
+from prepare_data import get_prepared_data
 
 from .analyzemodel import AnalyzeModel
 
@@ -33,18 +33,23 @@ class AnalyzeLinear(AnalyzeModel):
         self.Model = None
         self.coeffs = None
 
-    def analyze(self, vars: list[str] = list(AnalyzeModel.varformatdict.keys()), **kwargs):
+    def analyze(
+        self,
+        vars: list[str] = list(AnalyzeModel.varformatdict.keys()),
+        y_variable="duration",
+        **kwargs,
+    ):
         ds = self.d[vars]
         X = pd.get_dummies(ds)
         dummycols = pd.Series(X.columns)
-        y = self.d["dauer"]
+        y = self.d[y_variable]
         if not hasattr(self, "Model"):
             log.warning("analyze called without model object, abort")
             return
         model = self.Model(**kwargs)
         model.fit(X, y)
         coeffs = pd.DataFrame([dummycols, pd.Series(model.coef_)]).T
-        interc = pd.DataFrame(["intercept", model.intercept_])
+        interc = pd.DataFrame([["intercept", model.intercept_]])
         self.coeffs = pd.concat([coeffs, interc], axis=0)
         self.coeffs = self.coeffs.rename({0: "variable", 1: "value"}, axis=1)
 
@@ -91,7 +96,7 @@ class AnalyzeLinear(AnalyzeModel):
             style_header={"font-weight": "bold", "background-color": "var(--bs-card-cap-bg)"},
             style_filter={"display": "none", "height": "0px"},
         )
-        return datatable
+        return html.Div([html.Div(f"{len(self.d)} data points used (outliers excluded)"),datatable])
 
 
 class AnalyzeLasso(AnalyzeLinear):
@@ -140,13 +145,14 @@ class AnalyzeRidgeCV(AnalyzeLinear):
     Input({"component": "analyzerinputs", "analyzerid": MATCH, "id": ALL}, "id"),
     Input("storedflag", "data"),
     State("sessionid", "data"),
-    Input("startend_cluster_dropdown", "value"),
+    Input("cluster_dropdown", "value"),
+    Input("target_variable_dropdown", "value"),
     prevent_initial_call=True,
 )
-def callback_linear(values, ids, storedflag, sessionid, startendcluster):
-    if not storedflag or len(ids) == 0 or len(startendcluster) == 0:
+def callback_linear(values, ids, storedflag, sessionid, cluster, y_variable):
+    if not storedflag or len(ids) == 0 or len(cluster) == 0:
         return no_update
-    log.debug(f"callback linear: values = {values} ids = {ids} startendcluster = {startendcluster} ")
+    log.debug(f"callback linear: values = {values} ids = {ids} cluster = {cluster} ")
     analyzerid = ids[0].get("analyzerid")
     log.info(f"callback linear analyzerid = {analyzerid}")
     ids = [x.get("id") for x in ids]
@@ -159,7 +165,7 @@ def callback_linear(values, ids, storedflag, sessionid, startendcluster):
         log.warning("callback linear called with missing arguments")
         return no_update
     dr, _ = get_data_from_pickle_session(sessionid)
-    dr = get_data_for_one_startend(dr, startendcluster=startendcluster)
+    dr = get_prepared_data(dr, cluster=cluster)
     a = eval(analyzerid)(dr)
-    a.analyze(**kwargs)
+    a.analyze(y_variable=y_variable, **kwargs)
     return a.dash_output()

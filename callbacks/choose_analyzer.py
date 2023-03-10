@@ -15,7 +15,7 @@ log = logging.getLogger("gpxfun." + __name__)
     prevent_initial_call=False,
 )
 def update_analyzer_dropdown(_):
-    """Initialize the dropdown and results panels for the analyzer section """
+    """Initialize the dropdown and results panels for the analyzer section"""
     log.debug(str(ctx.triggered_id))
     af = AnalyzerFactory.avail_analyzers
     log.debug(f"Available analyzers: {' '.join(af)}")
@@ -44,11 +44,13 @@ def choose_analyzer(analyzerid, styles, ids):
     log.debug(str(styles))
     log.debug(str(ids))
     log.debug(f"analyzerid = {str(analyzerid)}")
-    returnstyles=styles
-    assert len(returnstyles)==len(ids)
+    returnstyles = styles
+    assert len(returnstyles) == len(ids)
     for i in range(len(returnstyles)):
         if ids[i].get("analyzerid") == analyzerid:
-            returnstyles[i]={"display":"block"}
+            returnstyles[i] = {"display": "block"}
         else:
-            returnstyles[i]={"display":"none"}
+            returnstyles[i] = {"display": "none"}
     return AnalyzerFactory().get_dash_inputs(analyzerid), returnstyles
+
+

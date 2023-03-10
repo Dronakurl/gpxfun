@@ -9,9 +9,7 @@ from tqdm import tqdm
 log = logging.getLogger("gpxfun." + __name__)
 
 
-def get_weather(
-    d: pd.DataFrame, dt_col: str = "startdatetime", loc_col: str = "start"
-) -> pd.DataFrame:
+def get_weather(d: pd.DataFrame, dt_col: str = "startdatetime", loc_col: str = "start") -> pd.DataFrame:
     """
     Get weather data from meteostat and attach it to the DataFrame
     :param d: pandas DataFrame with date and location data
@@ -55,9 +53,7 @@ def get_weather_dict(dt: datetime.datetime, lat: float, lon: float, ele: float) 
     log.debug(f"dt={dt}, lat={lat}, lon={lon}, ele={ele}")
     if dt.tzinfo == None:
         timez = "Europe/Berlin"
-        log.warning(
-            f"No timezone included in datetime variable {dt}, defaulting to CET"
-        )
+        log.warning(f"No timezone included in datetime variable {dt}, defaulting to CET")
     else:
         timez = str(dt.tzinfo)
     dt_dummy = dt.replace(tzinfo=None)
@@ -77,12 +73,11 @@ def get_weather_dict(dt: datetime.datetime, lat: float, lon: float, ele: float) 
 
 if __name__ == "__main__":
     from mylog import get_log
+
     log = get_log()
     print(
         get_weather_dict(
-            datetime.datetime(
-                2022, 2, 3, 9, 0, 0, tzinfo=pytz.timezone("Europe/Berlin")
-            ),
+            datetime.datetime(2022, 2, 3, 9, 0, 0, tzinfo=pytz.timezone("Europe/Berlin")),
             50,
             8,
             100,

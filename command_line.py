@@ -11,7 +11,7 @@ from cluster_it import cluster_all
 from infer_start_end import infer_start_end
 from mylog import get_log
 from parse_gpx import update_pickle_from_folder
-from prepare_data import mark_outliers_per_cluster, get_data_for_one_startend
+from prepare_data import mark_outliers_per_cluster, get_prepared_data
 
 log = get_log("gpxfun", logging.DEBUG)
 
@@ -72,14 +72,14 @@ log.info("Data is ready, show Number of clusters")
 log.info(
     pd.pivot_table(
         d,
-        "dateiname",
+        "filename",
         index=["startendcluster"],
         aggfunc=["count"],
         margins=True,
     )
 )
 
-dr = get_data_for_one_startend(d, startendcluster=1)
+dr = get_prepared_data(d, startendcluster=1)
 dr = [dr.is_outlier == False]
 
 

@@ -4,7 +4,7 @@ from pathlib import Path
 import threading
 
 from dash import Input, Output, State, callback, ctx, no_update
-import tqdm
+from tqdm import tqdm
 
 from app_data_functions import parse_and_cluster
 
@@ -27,9 +27,7 @@ def upload(contents, filenames, sessionid):
     # create sessionid folder
     (Path("sessions") / sessionid).mkdir(parents=True, exist_ok=True)
     # store alle files in a tmp session directory
-    for ii in tqdm(
-        range(len(contents)), colour="#ffff00", desc="GPX -> session folder"
-    ):
+    for ii in tqdm(range(len(contents)), colour="#ffff00", desc="GPX -> session folder"):
         filename = filenames[ii]
         if Path(filename).suffix != ".gpx":
             log.warning(f"provided {filename}, which is not a gpx file")

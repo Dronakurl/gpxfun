@@ -47,27 +47,27 @@ def interpolateroutes(r: list) -> list:
     return points
 
 
-def read_gpx_file(dateiname: Path, filehandle=None, weather: bool = True) -> dict:
+def read_gpx_file(filename: Path, filehandle=None, weather: bool = True) -> dict:
     """read one gpxfile
-    :param dateiname: Path containing the gpx file
-    :type dateiname: Path
+    :param filename: Path containing the gpx file
+    :type filename: Path
     :param filehandle: Optional file handle. If given, the data is read from the file
-                        handle instead of the file given in dateiname
+                        handle instead of the file given in filename
     :return: dictionary with the results of the parsing
     :rtype: dict
     """
-    log.debug(f"read {dateiname} {'with' if weather else 'without'} weather data")
+    log.debug(f"read {filename} {'with' if weather else 'without'} weather data")
     p = {}
-    p["dateiname"] = dateiname.name
+    p["filename"] = filename.name
     if filehandle is None:
-        with open(dateiname) as fh:
+        with open(filename) as fh:
             g = gpxpy.parse(fh)
     else:
         g = gpxpy.parse(filehandle)
-    p["strecke"] = gpxpy.gpx.GPX.length_3d(g)
-    p["dauer"] = gpxpy.gpx.GPX.get_duration(g) / 60  # pyright: ignore
+    p["distance"] = gpxpy.gpx.GPX.length_3d(g)
+    p["duration"] = gpxpy.gpx.GPX.get_duration(g) / 60  # pyright: ignore
     p["keywords"] = "" if g.keywords is None else g.keywords
-    p["bergab"] = g.get_uphill_downhill().downhill
+    p["uphill"] = g.get_uphill_downhill().downhill
     x = g.get_points_data()[0]
     p["start"] = gpxpy.geo.Location(
         latitude=x.point.latitude,
@@ -84,23 +84,25 @@ def read_gpx_file(dateiname: Path, filehandle=None, weather: bool = True) -> dic
             p["startdatetime"], x.point.latitude, x.point.longitude, x.point.elevation
         )
         p = p | wd
-    p["datum"] = p["startdatetime"].date()  # pyright: ignore
-    p["startzeit"] = p["startdatetime"].time()  # pyright: ignore
-    p["startzeitfloat"] = p["startzeit"].hour + p["startzeit"].minute / 60.0
-    p["monat"] = p["datum"].month
-    p["wochentag"] = p["datum"].strftime("%A")
-    p["jahreszeit"] = season_of_date(p["datum"])
+    p["date"] = p["startdatetime"].date()  # pyright: ignore
+    p["starttime"] = p["startdatetime"].time()  # pyright: ignore
+    p["starttimefloat"] = p["starttime"].hour + p["starttime"].minute / 60.0
+    p["month"] = p["date"].month
+    p["weekday"] = p["date"].strftime("%A")
+    p["season"] = season_of_date(p["date"])
     x = g.get_points_data()[-1]
     p["ende"] = gpxpy.geo.Location(
         latitude=x.point.latitude,
         longitude=x.point.longitude,
         elevation=x.point.elevation,
     )
-    p["luftlinie"] = p["ende"].distance_3d(p["start"])
+    p["distance_crow"] = p["ende"].distance_3d(p["start"])
     route = list(
         map(lambda x: [x.point.longitude, x.point.latitude], g.get_points_data())
     )
     p["route_inter"] = interpolateroutes(route)
+    p["speed"] = p["distance"]/1000/p["duration"]*60
+    p["crowspeed"] = p["distance_crow"]/1000/p["duration"]*60
     return p
 
 
@@ -125,13 +127,13 @@ def read_gpx_file_list(
     df = pd.DataFrame(r).convert_dtypes()
     df = df.astype(
         {
-            "jahreszeit": "category",
+            "season": "category",
             "keywords": "category",
-            "monat": "category",
+            "month": "category",
         }
     )
-    df["wochentag"] = pd.Categorical(
-        df.wochentag,
+    df["weekday"] = pd.Categorical(
+        df.weekday,
         categories=[
             "Monday",
             "Tuesday",
@@ -165,7 +167,7 @@ def update_pickle_from_list(
     else:
         with open(mypickle, "rb") as f:
             d = pickle.load(f)
-        fl = [f for f in filelist if f.name not in list(d["dateiname"])]
+        fl = [f for f in filelist if f.name not in list(d["filename"])]
     log.info(f"{len(fl)} of {len(filelist)} have to be parsed")
     updated = len(fl) > 0
     if updated:

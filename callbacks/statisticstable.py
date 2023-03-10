@@ -17,30 +17,30 @@ log = logging.getLogger("gpxfun." + __name__)
     Output("statisticsnewtable", "children"),
     Output("statisticstimeseries", "figure"),
     Input("storedflag", "data"),
-    Input("cluster_dropdown", "value"),
     State("sessionid", "data"),
     prevent_initial_call=True,
 )
-def statisticstable(storedflag, clusters, sessionid):
+def statisticstable(storedflag, sessionid):
     """table with statistics"""
     log.debug(str(ctx.triggered_id))
-    if storedflag == False or clusters is None:
-        return no_update, no_update
+    if storedflag == False:
+        return [no_update]*2
     dr, _ = get_data_from_pickle_session(sessionid)
     if len(dr) < 1:
-        return no_update, no_update
+        return [no_update]*2
     #     from geopy.geocoders import Nominatim
     # >>> geolocator = Nominatim(user_agent="specify_your_app_name_here")
     # >>> location = geolocator.reverse("52.509669, 13.376294")
     # >>> print(location.address)
     # Potsdamer Platz, Mitte, Berlin, 10117, Deutschland, European Union
     # get plot
-    dx = dr[["dateiname", "startdatetime", "startendcluster", "cluster"]].copy()
+    dx = dr[["filename", "startdatetime", "startendcluster", "cluster"]].copy()
     cats = list(dx.startendcluster.cat.categories)
-    dx["startendcluster"] = dx.startendcluster.cat.add_categories("other")
-    dx["startendcluster"] = dx.startendcluster.fillna("other")
-    dx["cluster"] = dx.cluster.cat.add_categories("other")
-    dx["cluster"] = dx.cluster.fillna("other")
+    log.debug(f"categories of startendcluster: {cats}")
+    # dx["startendcluster"] = dx.startendcluster.cat.add_categories("other")
+    # dx["startendcluster"] = dx.startendcluster.fillna("other")
+    # dx["cluster"] = dx.cluster.cat.add_categories("other")
+    # dx["cluster"] = dx.cluster.fillna("other")
     load_figure_template(TEMPLATE)
     fig = px.histogram(
         dx,
@@ -55,7 +55,7 @@ def statisticstable(storedflag, clusters, sessionid):
     dx.cluster = dx.cluster.str.extract("\d+_(.+)")
     dp = pd.pivot_table(
         dx,
-        "dateiname",
+        "filename",
         index=["cluster"],
         columns=["startendcluster"],
         aggfunc=["count"],

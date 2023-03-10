@@ -22,6 +22,7 @@ def parse_and_cluster(
     infolder: str,
     mypickle: Path = Path("pickles/df.pickle"),
     delete: bool = False,
+    y_variable: str = "duration"
 ) -> pd.DataFrame:
     """
     1. Parse the gpx data in a folder to a data frame
@@ -37,9 +38,8 @@ def parse_and_cluster(
     df = update_pickle_from_folder(infolder=infolder, mypickle=mypickle, delete=delete)
     df, se_clusters = infer_start_end(df)
     dists = calc_dist_matrix_per_se_cluster(df, simmeasure="mae")
-    # apply cluster algorithm for all startendcluster
     df, cluster_inf = cluster_all(df, dists, se_clusters, min_routes_per_cluster=10)
-    df = mark_outliers_per_cluster(df)
+    df = mark_outliers_per_cluster(df, cols=[y_variable])
     log.debug(f"write df DataFrame to {mypickle}")
     with open(mypickle, "wb") as f:
         pickle.dump(df, f)

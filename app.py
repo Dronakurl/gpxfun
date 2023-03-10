@@ -4,8 +4,8 @@ A plotly-dash app for analyzing gpx data of regular routes
 import logging
 
 from dash import Dash
-import dash_bootstrap_components as dbc
 
+import dash_bootstrap_components as dbc # pyright: ignore
 from app_layout import serve_layout
 import callbacks  # pyright: ignore
 from mylog import get_log  # pyright: ignore

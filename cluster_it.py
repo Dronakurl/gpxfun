@@ -32,11 +32,10 @@ def calc_cluster_from_dist(
     # reorder cluster labels according to size of cluster
     dfcluster = pd.DataFrame(
         zip(indices, cluster_labels),
-        columns=["dateiname", "cluster"],
+        columns=["filename", "cluster"],
     )
     x = (
-        dfcluster.cluster
-        .value_counts()
+        dfcluster.cluster.value_counts()
         .sort_values(ascending=False)
         .reset_index()
         .rename({"index": "old"}, axis=1)
@@ -52,18 +51,10 @@ def calc_cluster_from_dist(
                 return "other"
 
         x["new"] = x.apply(only_large, axis=1)
-    x = (
-        x
-        .drop("cluster", axis=1)
-        .rename({"old":"cluster"}, axis=1)
-    )
+    x = x.drop("cluster", axis=1).rename({"old": "cluster"}, axis=1)
     x.new = [clusterlabel + "_" + str(r) for r in x.new]
-    dfcluster = (
-        pd.merge(dfcluster, x, on="cluster")
-        .drop("cluster", axis=1)
-        .rename({"new": "cluster"}, axis=1)
-    )
-    dfcluster.index = dfcluster.dateiname
+    dfcluster = pd.merge(dfcluster, x, on="cluster").drop("cluster", axis=1).rename({"new": "cluster"}, axis=1)
+    dfcluster.index = dfcluster.filename
     # labls = dfcluster.cluster.unique()
     # print(f"For {clusterlabel}, {len(labls)} Clusters: {labls}")
     return dfcluster
@@ -78,20 +69,18 @@ def cluster_all(
     """Cluster routes grouped by custom locations and write to disk"""
     log.info(f"cluster_all {len(d)} routes in {len(se_clusters)} startendclusters")
     d["cluster"] = ""
-    d.index = d.dateiname
+    d.index = d.filename
     for a in list(se_clusters.startendcluster.cat.categories):
         dfcluster = calc_cluster_from_dist(
             dists[a],
-            dists[str(a) + "_dateinamen"],
+            dists[str(a) + "_filenamen"],
             clusterlabel=str(a),
             min_routes_per_cluster=min_routes_per_cluster,
         )
         d.update(dfcluster, join="left")
     d = d.reset_index(drop=True)
-    clustercombis = (
-        d.groupby(["startendcluster", "cluster"])["dateiname"].count().reset_index()
-    )
-    clustercombis = clustercombis[clustercombis.dateiname > 0]
+    clustercombis = d.groupby(["startendcluster", "cluster"])["filename"].count().reset_index()
+    clustercombis = clustercombis[clustercombis.filename > 0]
     clustercombis = se_clusters.merge(clustercombis, on="startendcluster")
     clustercombis.startendcluster.astype("category")
     clustercombis.cluster.astype("category")
@@ -101,7 +90,7 @@ def cluster_all(
 
 def cluster_it(
     distm,
-    dateinamen: list,
+    filenamen: list,
     clusterlabel: str = "cluster",
     min_cluster_size: int = 5,
 ) -> pd.DataFrame:
@@ -116,12 +105,9 @@ def cluster_it(
         allow_single_cluster=True,
     )
     cluster_labels = clusterer.fit_predict(distsm)
-    # print(
-    #     f"Für {clusterlabel} habe ich folgende {len(list(set(cluster_labels)))} Cluster gefunden: {list(set(cluster_labels))}"
-    # )
     dfcluster = pd.DataFrame(
-        zip(dateinamen, [clusterlabel + "_" + str(x) for x in cluster_labels]),
-        columns=["dateiname", "cluster"],
+        zip(filenamen, [clusterlabel + "_" + str(x) for x in cluster_labels]),
+        columns=["filename", "cluster"],
     )
-    dfcluster.index = dfcluster.dateiname
+    dfcluster.index = dfcluster.filename
     return dfcluster

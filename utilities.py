@@ -9,6 +9,17 @@ import pandas as pd
 
 log=logging.getLogger("gpxfun."+__name__)
 
+def save_int_cast(obj):
+    if isinstance(obj,int):
+        return obj
+    if str(obj).isdigit():
+        return int(obj)
+    else:
+        return obj
+
+def save_int_list_cast(lst):
+    return [save_int_cast(x) for x in lst]
+
 def getfilelist(mypath: str, suffix: str, withpath: bool = False) -> list:
     """Find all files in folders and subfolders given a specific extension"""
     p = Path(mypath).glob("**/*." + suffix)
@@ -28,7 +39,7 @@ def getdirlist(mypath: str, withpath: bool = False) -> list:
 
 
 def season_of_date(date: datetime.date) -> str:
-    """Zu einem Datumg die Jahreszeit zuordnen"""
+    """Get a season from a date"""
     year = date.year
     seasons = {
         "spring": pd.date_range(
