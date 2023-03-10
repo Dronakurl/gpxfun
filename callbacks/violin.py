@@ -55,7 +55,9 @@ def clickondata(clickdata, clusters, storedflag, sessionid):
             clickedseries = dr[dr["filename"] == clicked_file].iloc[0]
             clickedseries = clickedseries.drop(["route_inter"])
         except:
-            log.error(f"clickdata is strange {clickdata}")
+            log.error(f"clickdata is strange {clickdata} ")
+            log.error(f"clickdata is strange {clickeddict} ")
+            log.error(f"clickdata is strange {clicked_file}")
             return no_update
         return "\n".join(f"{clickedseries}".split("\n")[0:-1])
     else:

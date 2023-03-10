@@ -1,0 +1,12 @@
+Archiv/
+*.pickle
+*.json
+*.sqlite3
+*.ods
+data/
+fitbitdata/
+pickle/
+file_system_store
+sessions/
+__pycache__
+

@@ -1,7 +1,8 @@
 """
 Functions to cluster routers
 """
-from hdbscan import HDBSCAN
+# from hdbscan import HDBSCAN
+from sklearn.cluster import DBSCAN
 import numpy as np
 import pandas as pd
 from typing import Optional
@@ -96,14 +97,14 @@ def cluster_it(
 ) -> pd.DataFrame:
     """Finds cluster in a distance matrix"""
     distsm = pairwise_distances(distm)
-    # clusterer = DBSCAN(eps=2E-4,metric="precomputed")
-    clusterer = HDBSCAN(
-        metric="precomputed",
-        min_cluster_size=min_cluster_size,
-        algorithm="best",
-        approx_min_span_tree=False,
-        allow_single_cluster=True,
-    )
+    clusterer = DBSCAN(eps=2E-4,metric="precomputed")
+    # clusterer = HDBSCAN(
+    #     metric="precomputed",
+    #     min_cluster_size=min_cluster_size,
+    #     algorithm="best",
+    #     approx_min_span_tree=False,
+    #     allow_single_cluster=True,
+    # )
     cluster_labels = clusterer.fit_predict(distsm)
     dfcluster = pd.DataFrame(
         zip(filenamen, [clusterlabel + "_" + str(x) for x in cluster_labels]),
