@@ -9,4 +9,8 @@ pickle/
 file_system_store
 sessions/
 __pycache__
-
+.pytest_cache
+*.pyd
+*.pyo
+*.pyc
+Dockerfile

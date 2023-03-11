@@ -19,6 +19,9 @@ include = ["*.py","analyzer/**"]
 exclude = ["**/node_modules",
     "**/__pycache__",
     "Archiv/**"
+    , "data/**"
+    , "fitbitdata/**"
+    , "sessions/**"
 ]
 ignore = ["**/__init__.py"]
 typeCheckingMode = "off"
