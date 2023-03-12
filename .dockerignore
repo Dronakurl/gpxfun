@@ -1,5 +1,4 @@
 Archiv/
-*.pickle
 *.json
 *.sqlite3
 *.ods

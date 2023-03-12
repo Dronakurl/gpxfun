@@ -4,6 +4,7 @@ An app to analyze routes in gpx format to identify the most common starting and 
 - duration of each routes
 - speed 
 - "Crow Speed", i.e. the crow distance divided by time
+
 ... across:
 - common start/end-point combinations (called "startendcluster" in the app) 
 - common routes for these combinations (called "clusters" in the app)
@@ -12,9 +13,9 @@ An app to analyze routes in gpx format to identify the most common starting and 
 - season
 - time of the day
 
-The app is currently only tested with `gpx` files, recorded and downloaded from (https://www.bikecitizens.net/de/)[bikecitizens.net], a wonderful app with easy recording functionality.
+The app is currently only tested with `gpx` files, recorded and downloaded from [https://www.bikecitizens.net/de/](bikecitizens.net), a wonderful app with easy recording functionality.
 
-### Installation
+## Installation
 The python dependencies are shown in the file `pyproject.toml`. You can install and run with `poetry`:
 ```
 poetry install
