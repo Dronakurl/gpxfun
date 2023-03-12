@@ -15,6 +15,9 @@ An app to analyze routes in gpx format to identify the most common starting and 
 
 The app is currently only tested with `gpx` files, recorded and downloaded from [https://www.bikecitizens.net/de/](bikecitizens.net), a wonderful app with easy recording functionality.
 
+## Screenshot
+![Screenshot](https://github.com/Dronakurl/gpxfun/blob/main/Screenshot%20from%202023-03-12%2023-45-47.png?raw=true)
+
 ## Installation
 The python dependencies are shown in the file `pyproject.toml`. You can install and run with `poetry`:
 ```
