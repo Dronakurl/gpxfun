@@ -40,9 +40,9 @@ def update_analyzer_dropdown(_):
     prevent_initial_call=True,
 )
 def choose_analyzer(analyzerid, styles, ids):
-    log.debug(str(ctx.triggered_id))
-    log.debug(str(styles))
-    log.debug(str(ids))
+    # log.debug(str(ctx.triggered_id))
+    # log.debug(str(styles))
+    # log.debug(str(ids))
     log.debug(f"analyzerid = {str(analyzerid)}")
     returnstyles = styles
     assert len(returnstyles) == len(ids)

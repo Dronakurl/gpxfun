@@ -1,15 +1,45 @@
-# Route Analyzer 
-## What's the fastest way to work?
-An app to analyze routes in gpx format to identify the most common starting and end points and to find the fastest path.
+# 🚲 Bike Route Analyzer 
+## What's the fastest way from A to B?
+An app to analyze routes in gpx format to identify the most common starting and end points and analyze:
+- duration of each routes
+- speed 
+- "Crow Speed", i.e. the crow distance divided by time
+... across:
+- common start/end-point combinations (called "startendcluster" in the app) 
+- common routes for these combinations (called "clusters" in the app)
+- temperature
+- weekday
+- season
+- time of the day
 
-### dash app
-run `python app.py` to run the dash web app
+The app is currently only tested with `gpx` files, recorded and downloaded from (https://www.bikecitizens.net/de/)[bikecitizens.net], a wonderful app with easy recording functionality.
+
+### Installation
+The python dependencies are shown in the file `pyproject.toml`. You can install and run with `poetry`:
+```
+poetry install
+poetry run gunicorn app:app -b :8080
+```
+You can also install and run with `pip`:
+```
+pip install -r requirements.txt 
+gunicorn app:app -b :8080
+```
+With `python app.py`, you can run the application in dash debug mode
 
 ## Todos
-- load gpx data
-- loading bar
-- detect the coomon starting and end points
-- use serversidestorage
-- docker container
-- model selection
-- weather data
+### Data
+- test other sources than bike citizens
+- data augmentation
+- generate random test data
+- include fitbit data
+### Analyzers
+- tree models
+- classification models
+- SVC-algorithm, infer insights on features by probing predictions
+### GUI
+- GUI: Accordion GUI for the workflow on the left panel
+- GUI: Show single paths in a map when clicking on individual data
+- GUI: Better coloring for Start and end
+- GUI: Label Start/End clusters by getting addresses
+- GUI: get average path for each cluster 

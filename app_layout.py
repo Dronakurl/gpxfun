@@ -11,7 +11,7 @@ import dash_bootstrap_components as dbc
 from plots import blank_fig
 from prepare_data import y_variables_dict
 from utilities import getdirlist
-from analyzer.analyzemodel import varformatdict
+from analyzer.baseanalyzer import varformatdict
 
 log = logging.getLogger("gpxfun." + __name__)
 # MYCOLOR = "#ea39b8"

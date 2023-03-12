@@ -1,3 +1,15 @@
+import pandas as pd
+import plotly.express as px
+from sklearn.linear_model import Lasso, LassoCV
+from sklearn.model_selection import (
+    GridSearchCV,
+    cross_val_predict,
+    cross_val_score,
+    train_test_split,
+)
+from sklearn.svm import SVR
+
+from analyzer import BaseAnalyzer
 from analyzer_factory import AnalyzerFactory
 from app_data_functions import get_data_from_pickle_session
 from mylog import get_log
@@ -18,13 +30,7 @@ def test_lasso(d):
 dr = get_prepared_data(d)
 a = AnalyzerFactory().get_analyzer("AnalyzeSVR")(dr)
 
-import pandas as pd
-from sklearn.linear_model import Lasso, LassoCV
-from sklearn.svm import SVR
-from sklearn.model_selection import cross_val_score, train_test_split, cross_val_predict, GridSearchCV
-import plotly.express as px
-
-from analyzer import BaseAnalyzer 
+ 
 
 X = pd.get_dummies(dr[list(BaseAnalyzer.varformatdict.keys())])
 dummycols = pd.Series(X.columns)

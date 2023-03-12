@@ -3,7 +3,6 @@ import logging
 from dash import (
     ALL,
     Input,
-    MATCH,
     Output,
     State,
     callback,
@@ -19,10 +18,11 @@ from sklearn import linear_model
 
 from app_data_functions import get_data_from_pickle_session
 from prepare_data import get_prepared_data
-from sklearn.model_selection import cross_val_score, train_test_split, cross_val_predict, GridSearchCV
+
+# from sklearn.model_selection import cross_val_score, train_test_split#, cross_val_predict, GridSearchCV
 from prepare_data import y_variables_dict
 
-from .analyzemodel import BaseAnalyzer
+from .baseanalyzer import BaseAnalyzer
 
 
 log = logging.getLogger("gpxfun." + __name__)
@@ -35,7 +35,7 @@ class AnalyzeLinear(BaseAnalyzer):
         super().__init__(data)
         self.Model = None
         self.coeffs = None
-        self.y_variable=None
+        self.y_variable = None
 
     def analyze(
         self,
@@ -43,50 +43,11 @@ class AnalyzeLinear(BaseAnalyzer):
         y_variable="duration",
         **kwargs,
     ):
-        ds = self.d[vars]
-        self.y_variable=y_variable
-        X = pd.get_dummies(ds)
-        dummycols = pd.Series(X.columns)
-        y = self.d[y_variable]
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
-        if not hasattr(self, "Model"):
-            log.warning("analyze called without model object, abort")
-            return
-        model = self.Model(**kwargs)
-        model.fit(X_train, y_train)
-        coeffs = pd.DataFrame([dummycols, pd.Series(model.coef_)]).T
-        interc = pd.DataFrame([["intercept", model.intercept_]])
+        super().analyze(vars=vars, y_variable=y_variable, **kwargs)
+        coeffs = pd.DataFrame([self.dummycols, pd.Series(self.model.coef_)]).T
+        interc = pd.DataFrame([["intercept", self.model.intercept_]])
         self.coeffs = pd.concat([coeffs, interc], axis=0)
         self.coeffs = self.coeffs.rename({0: "variable", 1: "value"}, axis=1)
-        y_test_p = model.predict(X_test)
-        y_test= y_test.rename("y_test")
-        y_test=pd.merge(y_test,self.d["filename"],left_index=True,right_index=True)
-        y_test_p = pd.Series(y_test_p,index=y_test.index,name="y_test_p")
-        self.test_y = pd.concat([y_test, y_test_p],axis=1)
-        self.cvscores = cross_val_score(model, X, y, cv=5)
-
-    @staticmethod
-    def dash_inputs_args(id):
-        log.debug(f"empty dash_inputs_args called with id = {id}")
-        return []
-
-    @classmethod
-    def dash_inputs(cls):
-        log.debug(f"dash_inputs for class {cls.__name__}")
-        id = {"component": "linearinputs", "analyzerid": cls.__name__}
-        return html.Div(
-            [
-                dcc.Checklist(
-                    options=AnalyzeLinear.varformatdict,
-                    value=list(AnalyzeLinear.varformatdict.keys()),
-                    id=id | dict(id="vars"),
-                    # labelClassName="blocky",
-                    labelStyle={"display": "block"},
-                    inputStyle={"display": "inline", "padding-right": "20px"},
-                )
-            ]
-            + cls.dash_inputs_args(id)
-        )
 
     def dash_output(self):
         if self.coeffs is None:
@@ -108,26 +69,25 @@ class AnalyzeLinear(BaseAnalyzer):
             style_header={"font-weight": "bold", "background-color": "var(--bs-card-cap-bg)"},
             style_filter={"display": "none", "height": "0px"},
         )
-        fig=px.scatter(self.test_y, height=300, x="y_test", y="y_test_p")
-        yvar=y_variables_dict.get(self.y_variable,'y_variable')
-        fig.update_layout( xaxis_title=f"true {yvar}", yaxis_title=f"predicted {yvar}"),
-        fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
-        plot_predicted_vs_true = dcc.Graph(figure=fig)
+        plot_predicted_vs_true = self.plot_predicted_vs_true()
         tabs = dbc.Tabs(
             [
                 dbc.Tab(
                     html.Div(
                         [
                             html.Div(f"{len(self.d)} data points used (outliers excluded)"),
-                            html.Div("Cross-validation scores: " + " ".join(["{0:3.2f}".format(x) for x in self.cvscores])),
+                            html.Div(
+                                "Cross-validation scores: " + " ".join(["{0:3.2f}".format(x) for x in self.cvscores])
+                            ),
                             datatable,
                         ]
                     ),
-                    label="Coefficients",tab_id="coeffs"
+                    label="Coefficients",
+                    tab_id="coeffs",
                 ),
-                dbc.Tab([plot_predicted_vs_true], label="Prediction vs. true value",tab_id="plot")
-            ]
-            ,active_tab="plot"
+                dbc.Tab([plot_predicted_vs_true], label="Prediction vs. true value", tab_id="plot"),
+            ],
+            active_tab="plot",
         )
         return tabs
 
@@ -172,16 +132,46 @@ class AnalyzeRidgeCV(AnalyzeLinear):
         return [dbc.Input(value="(0.1,1.0,10.0)", type="text", id=id | {"id": "eval_alphas"})]
 
 
+def make_callback_decs(analyzerid):
+    return [
+        Output({"component": "analyzerresult", "analyzerid": analyzerid}, "children"),
+        Input({"component": "analyzerinputs", "analyzerid": analyzerid, "id": ALL}, "value"),
+        Input({"component": "analyzerinputs", "analyzerid": analyzerid, "id": ALL}, "id"),
+        Input("storedflag", "data"),
+        State("sessionid", "data"),
+        Input("cluster_dropdown", "value"),
+        Input("target_variable_dropdown", "value"),
+    ]
+
+
 @callback(
-    Output({"component": "analyzerresult", "analyzerid": MATCH}, "children"),
-    Input({"component": "linearinputs", "analyzerid": MATCH, "id": ALL}, "value"),
-    Input({"component": "linearinputs", "analyzerid": MATCH, "id": ALL}, "id"),
-    Input("storedflag", "data"),
-    State("sessionid", "data"),
-    Input("cluster_dropdown", "value"),
-    Input("target_variable_dropdown", "value"),
+    *make_callback_decs("AnalyzeLasso"),
     prevent_initial_call=True,
 )
+def callback_lasso(values, ids, storedflag, sessionid, cluster, y_variable):
+    return callback_linear(values, ids, storedflag, sessionid, cluster, y_variable)
+
+@callback(
+    *make_callback_decs("AnalyzeLassoCV"),
+    prevent_initial_call=True,
+)
+def callback_lassocv(values, ids, storedflag, sessionid, cluster, y_variable):
+    return callback_linear(values, ids, storedflag, sessionid, cluster, y_variable)
+
+@callback(
+    *make_callback_decs("AnalyzeRidge"),
+    prevent_initial_call=True,
+)
+def callback_ridge(values, ids, storedflag, sessionid, cluster, y_variable):
+    return callback_linear(values, ids, storedflag, sessionid, cluster, y_variable)
+
+@callback(
+    *make_callback_decs("AnalyzeRidgeCV"),
+    prevent_initial_call=True,
+)
+def callback_ridgecv(values, ids, storedflag, sessionid, cluster, y_variable):
+    return callback_linear(values, ids, storedflag, sessionid, cluster, y_variable)
+
 def callback_linear(values, ids, storedflag, sessionid, cluster, y_variable):
     if not storedflag or len(ids) == 0 or len(cluster) == 0:
         return no_update

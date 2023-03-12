@@ -92,8 +92,7 @@ def cluster_all(
 def cluster_it(
     distm,
     filenamen: list,
-    clusterlabel: str = "cluster",
-    min_cluster_size: int = 5,
+    clusterlabel: str = "cluster"
 ) -> pd.DataFrame:
     """Finds cluster in a distance matrix"""
     distsm = pairwise_distances(distm)

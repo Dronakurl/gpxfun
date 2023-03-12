@@ -7,47 +7,57 @@ from pathlib import Path
 
 import pandas as pd
 
-log=logging.getLogger("gpxfun."+__name__)
+log = logging.getLogger("gpxfun." + __name__)
 
 
 def safe_float_cast(obj):
-    """ Cast an object to str and if it is a number, it will be casted to in, 
+    """Cast an object to str and if it is a number, it will be casted to in,
     returns the original object, if not
     """
-    if isinstance(obj,float):
+    if isinstance(obj, float):
         return obj
-    if str(obj).isnumeric():
+    try:
         return float(obj)
-    else:
+    except (ValueError,TypeError):
         return obj
-   
+
 
 def safe_int_cast(obj):
-    """ Cast an object to str and if it is an int, it will be casted to in, 
+    """Cast an object to str and if it is an int, it will be casted to in,
     returns the original object, if not
     """
-    if isinstance(obj,int):
+    if isinstance(obj, int):
         return obj
     if str(obj).isdigit():
         return int(obj)
     else:
         return obj
 
+
 def safe_int_float_cast(obj):
     if isinstance(obj, int) or isinstance(obj, float):
         return obj
     rv = safe_int_cast(obj)
-    if isinstance(rv,int):
+    if isinstance(rv, int):
         return rv
     else:
         return safe_float_cast(obj)
 
+
+def safe_int_float_kwargs(kwargs):
+    log.debug(f"arguments before transformation: {kwargs}")
+    rkw = {k: safe_int_float_cast(v) for (k, v) in kwargs.items()}
+    log.debug(f"arguments after  transformation: {rkw}")
+    return rkw
+
+
 def safe_int_list_cast(lst):
-    """ For each item of the passed list: 
-    Cast an object to str and if it is a number, it will be casted to in, 
+    """For each item of the passed list:
+    Cast an object to str and if it is a number, it will be casted to in,
     returns the original object, if not
     """
     return [safe_int_cast(x) for x in lst]
+
 
 def getfilelist(mypath: str, suffix: str, withpath: bool = False) -> list:
     """Find all files in folders and subfolders given a specific extension"""
@@ -71,15 +81,9 @@ def season_of_date(date: datetime.date) -> str:
     """Get a season from a date"""
     year = date.year
     seasons = {
-        "spring": pd.date_range(
-            start=datetime.date(year, 3, 21), end=datetime.date(year, 6, 20)
-        ),
-        "summer": pd.date_range(
-            start=datetime.date(year, 6, 21), end=datetime.date(year, 9, 22)
-        ),
-        "autumn": pd.date_range(
-            start=datetime.date(year, 9, 23), end=datetime.date(year, 12, 20)
-        ),
+        "spring": pd.date_range(start=datetime.date(year, 3, 21), end=datetime.date(year, 6, 20)),
+        "summer": pd.date_range(start=datetime.date(year, 6, 21), end=datetime.date(year, 9, 22)),
+        "autumn": pd.date_range(start=datetime.date(year, 9, 23), end=datetime.date(year, 12, 20)),
     }
     if pd.Timestamp(date) in seasons["spring"]:
         return "spring"
@@ -99,4 +103,3 @@ def convert_bytes(num):
         if num < 1024.0:
             return "%3.1f %s" % (num, x)
         num /= 1024.0
-
