@@ -4,7 +4,6 @@ Archiv/
 *.ods
 data/
 fitbitdata/
-pickle/
 file_system_store
 __pycache__
 .pytest_cache
