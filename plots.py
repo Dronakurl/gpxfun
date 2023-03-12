@@ -88,13 +88,8 @@ def plotaroute(
     y = prepareplotdata(route, groupfield, routevar=routevar)
     load_figure_template(TEMPLATE)
     if zoom == -1:
-        calczoom = 8
+        calczoom = 12
         calccenter = None
-        # (
-        #     calczoom,
-        #     calccenter,
-        # ) = get_plotting_zoom_level(longitudes=y.lon, latitudes=y.lat)
-        # calczoom = calczoom + 1
     else:
         calczoom = zoom
         calccenter = None

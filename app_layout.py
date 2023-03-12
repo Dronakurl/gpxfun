@@ -41,7 +41,9 @@ def get_loadstuff():
         id="upload-data",
         children=dbc.Button("Upload gpx files"),
         multiple=True,
+        style={"margin-right":"10px"}
     )
+    togglelog = dbc.Button("Toggle log",color="secondary", id="togglelog",style={"display":"inline-block"})
     progessbar = dbc.Progress(
         value=0,
         id="progressbar",
@@ -111,7 +113,7 @@ def get_loadstuff():
     loadcard = dbc.Card(
         [
             dbc.CardHeader("Load GPX data"),
-            dbc.CardBody([uploadfield, progessbar, picksessionid, load_textarea]),
+            dbc.CardBody([uploadfield,togglelog, progessbar, picksessionid, load_textarea]),
             # dbc.CardBody([uploadfield, progessbar,  load_textarea]),
         ],
         style={"margin-bottom": "5px"},

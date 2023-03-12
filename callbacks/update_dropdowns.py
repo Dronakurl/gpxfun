@@ -1,7 +1,7 @@
 import logging
 import pickle
 from pathlib import Path
-from utilities import save_int_list_cast
+from utilities import safe_int_list_cast
 
 from dash import Input, Output, State, callback, ctx, no_update
 
@@ -23,7 +23,7 @@ def update_cluster_dropdown(startendclusters, storedflag, sessionid):
         return [no_update] * 2
     with open(Path("sessions") / sessionid / "most_imp_clusters.pickle", "rb") as f:
         most_imp_clusters = pickle.load(f)
-    clusters = most_imp_clusters[most_imp_clusters.startendcluster.isin(save_int_list_cast(startendclusters))].cluster
+    clusters = most_imp_clusters[most_imp_clusters.startendcluster.isin(safe_int_list_cast(startendclusters))].cluster
     cluster_dropdown_opts = {}
     for clu in list(clusters):
         cluster_dropdown_opts[clu] = "Route " + str(clu)

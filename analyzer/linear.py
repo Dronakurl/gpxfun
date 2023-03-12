@@ -14,44 +14,56 @@ from dash import (
 )
 import dash_bootstrap_components as dbc
 import pandas as pd
+import plotly.express as px
 from sklearn import linear_model
 
 from app_data_functions import get_data_from_pickle_session
 from prepare_data import get_prepared_data
+from sklearn.model_selection import cross_val_score, train_test_split, cross_val_predict, GridSearchCV
+from prepare_data import y_variables_dict
 
-from .analyzemodel import AnalyzeModel
+from .analyzemodel import BaseAnalyzer
 
 
 log = logging.getLogger("gpxfun." + __name__)
 
 
-class AnalyzeLinear(AnalyzeModel):
+class AnalyzeLinear(BaseAnalyzer):
     """Class to fit all linear models"""
 
     def __init__(self, data: pd.DataFrame):
         super().__init__(data)
         self.Model = None
         self.coeffs = None
+        self.y_variable=None
 
     def analyze(
         self,
-        vars: list[str] = list(AnalyzeModel.varformatdict.keys()),
+        vars: list[str] = list(BaseAnalyzer.varformatdict.keys()),
         y_variable="duration",
         **kwargs,
     ):
         ds = self.d[vars]
+        self.y_variable=y_variable
         X = pd.get_dummies(ds)
         dummycols = pd.Series(X.columns)
         y = self.d[y_variable]
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
         if not hasattr(self, "Model"):
             log.warning("analyze called without model object, abort")
             return
         model = self.Model(**kwargs)
-        model.fit(X, y)
+        model.fit(X_train, y_train)
         coeffs = pd.DataFrame([dummycols, pd.Series(model.coef_)]).T
         interc = pd.DataFrame([["intercept", model.intercept_]])
         self.coeffs = pd.concat([coeffs, interc], axis=0)
         self.coeffs = self.coeffs.rename({0: "variable", 1: "value"}, axis=1)
+        y_test_p = model.predict(X_test)
+        y_test= y_test.rename("y_test")
+        y_test=pd.merge(y_test,self.d["filename"],left_index=True,right_index=True)
+        y_test_p = pd.Series(y_test_p,index=y_test.index,name="y_test_p")
+        self.test_y = pd.concat([y_test, y_test_p],axis=1)
+        self.cvscores = cross_val_score(model, X, y, cv=5)
 
     @staticmethod
     def dash_inputs_args(id):
@@ -61,7 +73,7 @@ class AnalyzeLinear(AnalyzeModel):
     @classmethod
     def dash_inputs(cls):
         log.debug(f"dash_inputs for class {cls.__name__}")
-        id = {"component": "analyzerinputs", "analyzerid": cls.__name__}
+        id = {"component": "linearinputs", "analyzerid": cls.__name__}
         return html.Div(
             [
                 dcc.Checklist(
@@ -96,7 +108,28 @@ class AnalyzeLinear(AnalyzeModel):
             style_header={"font-weight": "bold", "background-color": "var(--bs-card-cap-bg)"},
             style_filter={"display": "none", "height": "0px"},
         )
-        return html.Div([html.Div(f"{len(self.d)} data points used (outliers excluded)"),datatable])
+        fig=px.scatter(self.test_y, height=300, x="y_test", y="y_test_p")
+        yvar=y_variables_dict.get(self.y_variable,'y_variable')
+        fig.update_layout( xaxis_title=f"true {yvar}", yaxis_title=f"predicted {yvar}"),
+        fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+        plot_predicted_vs_true = dcc.Graph(figure=fig)
+        tabs = dbc.Tabs(
+            [
+                dbc.Tab(
+                    html.Div(
+                        [
+                            html.Div(f"{len(self.d)} data points used (outliers excluded)"),
+                            html.Div("Cross-validation scores: " + " ".join(["{0:3.2f}".format(x) for x in self.cvscores])),
+                            datatable,
+                        ]
+                    ),
+                    label="Coefficients",tab_id="coeffs"
+                ),
+                dbc.Tab([plot_predicted_vs_true], label="Prediction vs. true value",tab_id="plot")
+            ]
+            ,active_tab="plot"
+        )
+        return tabs
 
 
 class AnalyzeLasso(AnalyzeLinear):
@@ -141,8 +174,8 @@ class AnalyzeRidgeCV(AnalyzeLinear):
 
 @callback(
     Output({"component": "analyzerresult", "analyzerid": MATCH}, "children"),
-    Input({"component": "analyzerinputs", "analyzerid": MATCH, "id": ALL}, "value"),
-    Input({"component": "analyzerinputs", "analyzerid": MATCH, "id": ALL}, "id"),
+    Input({"component": "linearinputs", "analyzerid": MATCH, "id": ALL}, "value"),
+    Input({"component": "linearinputs", "analyzerid": MATCH, "id": ALL}, "id"),
     Input("storedflag", "data"),
     State("sessionid", "data"),
     Input("cluster_dropdown", "value"),

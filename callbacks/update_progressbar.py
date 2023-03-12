@@ -33,7 +33,7 @@ def update_progessbar(_, sessionid, numberoffiles, picksessionid):
             "loaded a sessionid",
             "#00FF18",
             True,
-            f"files will be loaded from sessionid {sessionid}",
+            f"files are loaded from sessionid {picksessionid}",
             True,
             picksessionid,
         )
@@ -77,3 +77,21 @@ def update_progessbar(_, sessionid, numberoffiles, picksessionid):
         storedflag,
         no_update,
     )
+
+@callback(
+    Output("progressbar", "style"),
+    Output("load_textarea", "style"),
+    Output("picksessionid", "style"),
+    Input("togglelog", "n_clicks"),
+    State("progressbar", "style"),
+    State("load_textarea", "style"),
+    State("picksessionid", "style"),
+    prevent_initial_call=True,
+)
+def togglelog(_, progress, load, pick):
+    """ toggle visibility of loading items """
+    if ctx.triggered_id == None:
+        return [no_update] * 3
+    for elmt in (progress, load, pick):
+        elmt["display"]="none" if elmt.get("display","block")=="block" else "block"
+    return progress, load, pick

@@ -21,7 +21,8 @@ def get_prepared_data(
     statistical analysis
     :param d: pandas DataFrame with the data
     :type d: pandas.DataFrame
-    :param startendcluster: id of the startendcluster
+    :param startendcluster: id of the startendcluster or None for all startendclusters od list of ids 
+    :param cluster: list of ids of the cluster or None for all clusters 
     :param minrecords: minimum number of records for each route cluster,
                 route clusters with less amount of records are put into "other" cluster
     """

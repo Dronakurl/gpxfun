@@ -9,7 +9,23 @@ import pandas as pd
 
 log=logging.getLogger("gpxfun."+__name__)
 
-def save_int_cast(obj):
+
+def safe_float_cast(obj):
+    """ Cast an object to str and if it is a number, it will be casted to in, 
+    returns the original object, if not
+    """
+    if isinstance(obj,float):
+        return obj
+    if str(obj).isnumeric():
+        return float(obj)
+    else:
+        return obj
+   
+
+def safe_int_cast(obj):
+    """ Cast an object to str and if it is an int, it will be casted to in, 
+    returns the original object, if not
+    """
     if isinstance(obj,int):
         return obj
     if str(obj).isdigit():
@@ -17,8 +33,21 @@ def save_int_cast(obj):
     else:
         return obj
 
-def save_int_list_cast(lst):
-    return [save_int_cast(x) for x in lst]
+def safe_int_float_cast(obj):
+    if isinstance(obj, int) or isinstance(obj, float):
+        return obj
+    rv = safe_int_cast(obj)
+    if isinstance(rv,int):
+        return rv
+    else:
+        return safe_float_cast(obj)
+
+def safe_int_list_cast(lst):
+    """ For each item of the passed list: 
+    Cast an object to str and if it is a number, it will be casted to in, 
+    returns the original object, if not
+    """
+    return [safe_int_cast(x) for x in lst]
 
 def getfilelist(mypath: str, suffix: str, withpath: bool = False) -> list:
     """Find all files in folders and subfolders given a specific extension"""

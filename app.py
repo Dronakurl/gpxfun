@@ -29,7 +29,7 @@ app.secret_key = "super secret key"  # pyright: ignore
 if __name__ == "__main__":
     # The host parameter is needed, so the app is also accessible
     # from another computer in the local network
-    dashapp.run_server(debug=True, host="0.0.0.0")
+    dashapp.run_server(debug=True, port=8080, host="0.0.0.0")
 
 # start with: gunicorn app:app -b :8000
 # start testing servier with: poetry run python -m app

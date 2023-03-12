@@ -13,7 +13,7 @@ varformatdict = {
     "temp": "Temperature",
 }
 
-class AnalyzeModel(object):
+class BaseAnalyzer(object):
     varformatdict = varformatdict 
     def __init__(self, data: pd.DataFrame):
         self.d = data

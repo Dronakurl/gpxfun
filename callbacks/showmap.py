@@ -44,14 +44,15 @@ def analyzerstats(dr, y_variable):
     """The small statistics field in the analyzer tab"""
     return html.Div(
         [
-            html.B("Data points: "),
+            html.Span("Data points: "),
             html.Span(str(len(dr))),
             html.Br(),
-            html.B("Outliers: "),
+            html.Span("Outliers: "),
             html.Span(str(len(dr[dr.is_outlier]))),
             html.Br(),
-            html.B(f"Mean {y_variables_dict.get(y_variable,'ERROR')}: "),
+            html.Span(f"Mean {y_variables_dict.get(y_variable,'ERROR')}: "),
             html.Span(f"{np.mean(dr[y_variable]):.2f}"),
         ],
-        style={"font-size": "10pt", "font-family": "Roboto mono, mono"},
+        style={"font-family":"var(--bs-body-font-family)"}
+        # style={"font-size": "10pt", "font-family": "Roboto mono, mono"},
     )

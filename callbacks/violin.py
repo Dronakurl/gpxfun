@@ -49,8 +49,7 @@ def clickondata(clickdata, clusters, storedflag, sessionid):
         try:
             # I don't know, why I need this, but the given clickdata is not a proper dict at first
             clickeddict = json.loads(json.dumps(clickdata))
-            # import pdb; pdb.set_trace()
-            clicked_file = clickeddict["points"][0]["customdata"][0]
+            clicked_file = [x for x in clickeddict["points"][0]["customdata"] if str(x).endswith("gpx")][0]
             dr, _ = get_data_from_pickle_session(sessionid)
             clickedseries = dr[dr["filename"] == clicked_file].iloc[0]
             clickedseries = clickedseries.drop(["route_inter"])
