@@ -17,6 +17,7 @@ from prepare_data import get_prepared_data
 
 log = get_log("gpxfun", 10)
 
+# get data
 d, _ = get_data_from_pickle_session("test")
 
 
