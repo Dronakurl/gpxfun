@@ -21,6 +21,7 @@ d, _ = get_data_from_pickle_session("test")
 
 
 def test_lasso(d):
+    # Test LASSO
     dr = get_prepared_data(d, startendcluster=0)
     a = AnalyzerFactory().get_analyzer("AnalyzeLasso")(dr)
     a.analyze(alpha=0.1)
