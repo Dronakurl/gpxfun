@@ -1,11 +1,10 @@
 Archiv/
-*.pickle
 *.json
 *.sqlite3
 *.ods
 data/
 fitbitdata/
-pickle/
+sessions
 file_system_store
 
 # Byte-compiled / optimized / DLL files

@@ -37,13 +37,15 @@ With `python app.py`, you can run the application in dash debug mode
 - data augmentation
 - generate random test data
 - include fitbit data
+
 ### Analyzers
 - tree models
 - classification models
 - SVC-algorithm, infer insights on features by probing predictions
+
 ### GUI
-- GUI: Accordion GUI for the workflow on the left panel
-- GUI: Show single paths in a map when clicking on individual data
-- GUI: Better coloring for Start and end
-- GUI: Label Start/End clusters by getting addresses
-- GUI: get average path for each cluster 
+- Accordion GUI for the workflow on the left panel
+- Show single paths in a map when clicking on individual data
+- Better coloring for Start and end
+- Label Start/End clusters by getting addresses
+- get average path for each cluster 
