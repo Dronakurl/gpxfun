@@ -13,10 +13,10 @@ import pandas as pd
 from scipy.interpolate import UnivariateSpline, interp1d
 import pytz
 
-from utilities import getfilelist, season_of_date
+from utils.utilities import getfilelist, season_of_date
 from tqdm import tqdm
 from timezonefinder import TimezoneFinder
-from get_weather import get_weather_dict
+from .get_weather import get_weather_dict
 
 log = logging.getLogger("gpxfun."+__name__)
 
@@ -196,7 +196,7 @@ def update_pickle_from_folder(
 
 
 if __name__ == "__main__":
-    from mylog import get_log
+    from utils.mylog import get_log
     log = get_log()
     x = read_gpx_file(Path("./data/20220904T145953000.gpx"))
     x["route_inter"] = []

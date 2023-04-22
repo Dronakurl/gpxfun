@@ -3,8 +3,8 @@ import logging
 
 from dash import Input, Output, State, callback, ctx, no_update
 
-from app_data_functions import get_data_from_pickle_session
-from plots import violin
+from dash_app.app_data_functions import get_data_from_pickle_session
+from dash_app.plots import violin
 
 
 log = logging.getLogger("gpxfun." + __name__)

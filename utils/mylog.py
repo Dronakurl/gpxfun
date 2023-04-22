@@ -17,6 +17,15 @@ class TqdmLoggingHandler(colorlog.StreamHandler):
 
 
 def get_log(name: str = "default", level=logging.DEBUG):
+    """ Get a custom logger. 
+
+    usage:
+        ```python
+        import logging
+        from mylog import get_log
+        log = get_log(__name__, level=logging.DEBUG)
+        ```
+    """
     log = logging.getLogger(name)
     log.setLevel(level)
     hdlr = TqdmLoggingHandler()

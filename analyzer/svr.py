@@ -13,10 +13,10 @@ from dash import (
 import dash_bootstrap_components as dbc
 import pandas as pd
 from sklearn import svm
-from utilities import safe_int_float_kwargs
+from utils.utilities import safe_int_float_kwargs
 
-from app_data_functions import get_data_from_pickle_session
-from prepare_data import get_prepared_data
+from dash_app.app_data_functions import get_data_from_pickle_session
+from gpxfun.prepare_data import get_prepared_data
 
 from .baseanalyzer import BaseAnalyzer
 

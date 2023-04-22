@@ -3,9 +3,9 @@ import logging
 from dash import Input, Output, State, callback, ctx, html, no_update
 import numpy as np
 
-from app_data_functions import get_data_from_pickle_session
-from plots import plotaroute
-from prepare_data import y_variables_dict
+from dash_app.app_data_functions import get_data_from_pickle_session
+from dash_app.plots import plotaroute
+from gpxfun.prepare_data import y_variables_dict
 
 
 log = logging.getLogger("gpxfun." + __name__)

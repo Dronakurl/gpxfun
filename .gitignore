@@ -3,7 +3,6 @@ Archiv/
 *.sqlite3
 *.ods
 data/
-fitbitdata/
 sessions
 file_system_store
 

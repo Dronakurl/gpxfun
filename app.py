@@ -5,19 +5,17 @@ import logging
 
 from dash import Dash
 
-import dash_bootstrap_components as dbc # pyright: ignore
-from app_layout import serve_layout
+import dash_bootstrap_components as dbc  # pyright: ignore
+from dash_app.app_layout import serve_layout
 import callbacks  # pyright: ignore
-from mylog import get_log  # pyright: ignore
+from utils.mylog import get_log  # pyright: ignore
 
 log = get_log("gpxfun", logging.DEBUG)
 
-from plots import TEMPLATE
+from dash_app.plots import TEMPLATE
 
 dbc_css = "https://cdn.jsdelivr.net/gh/AnnMarieW/dash-bootstrap-templates/dbc.css"
-dashapp = Dash(
-    __name__, external_stylesheets=[eval("dbc.themes." + TEMPLATE.upper()), dbc_css]
-)
+dashapp = Dash(__name__, external_stylesheets=[eval("dbc.themes." + TEMPLATE.upper()), dbc_css])
 dashapp.title = "Bike route analyzer"
 
 dashapp.layout = serve_layout

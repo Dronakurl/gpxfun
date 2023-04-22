@@ -2,9 +2,10 @@ import datetime
 
 import meteostat
 import pandas as pd
-import pytz
+# import pytz
 import logging
 from tqdm import tqdm
+# from gpxpy.geo import Location
 
 log = logging.getLogger("gpxfun." + __name__)
 
@@ -71,15 +72,3 @@ def get_weather_dict(dt: datetime.datetime, lat: float, lon: float, ele: float) 
     return d
 
 
-if __name__ == "__main__":
-    from mylog import get_log
-
-    log = get_log()
-    print(
-        get_weather_dict(
-            datetime.datetime(2022, 2, 3, 9, 0, 0, tzinfo=pytz.timezone("Europe/Berlin")),
-            50,
-            8,
-            100,
-        )
-    )

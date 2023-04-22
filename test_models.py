@@ -12,10 +12,10 @@ from sklearn.model_selection import (
 from sklearn.svm import SVR
 
 from analyzer import BaseAnalyzer
-from analyzer_factory import AnalyzerFactory
-from app_data_functions import get_data_from_pickle_session
-from mylog import get_log
-from prepare_data import get_prepared_data
+from gpxfun.analyzer_factory import AnalyzerFactory
+from dash_app.app_data_functions import get_data_from_pickle_session
+from utils.mylog import get_log
+from gpxfun.prepare_data import get_prepared_data
 
 log = get_log("gpxfun", 10)
 

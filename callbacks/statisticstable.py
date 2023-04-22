@@ -7,8 +7,8 @@ from dash_bootstrap_templates import load_figure_template
 import pandas as pd
 import plotly.express as px
 
-from app_data_functions import get_data_from_pickle_session
-from plots import TEMPLATE
+from dash_app.app_data_functions import get_data_from_pickle_session
+from dash_app.plots import TEMPLATE
 
 log = logging.getLogger("gpxfun." + __name__)
 

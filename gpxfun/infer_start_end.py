@@ -119,7 +119,7 @@ def infer_start_end(
 
 
 if __name__ == "__main__":
-    from mylog import get_log
+    from utils.mylog import get_log
 
     log = get_log()
     import pickle

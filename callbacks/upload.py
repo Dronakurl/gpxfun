@@ -6,7 +6,7 @@ import threading
 from dash import Input, Output, State, callback, ctx, no_update
 from tqdm import tqdm
 
-from app_data_functions import parse_and_cluster
+from dash_app.app_data_functions import parse_and_cluster
 
 
 log = logging.getLogger("gpxfun." + __name__)

@@ -1,16 +1,15 @@
 """ 
 Layout for the dash app, to be used in the main app.py
 """
-# ea39b8
 import logging
 import uuid
 
 from dash import dash_table, dcc, html
 import dash_bootstrap_components as dbc
 
-from plots import blank_fig
-from prepare_data import y_variables_dict
-from utilities import getdirlist
+from .plots import blank_fig
+from gpxfun.prepare_data import y_variables_dict
+from utils.utilities import getdirlist
 from analyzer.baseanalyzer import varformatdict
 
 log = logging.getLogger("gpxfun." + __name__)
@@ -19,6 +18,7 @@ MYCOLOR = "grey"
 
 
 def getsessionids():
+    """ Get the session ids from the sessions folder. """
     opts = {}
     for sessionpath in getdirlist("sessions", withpath=True):
         opts[sessionpath.name] = sessionpath.name

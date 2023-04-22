@@ -53,7 +53,7 @@ def safe_int_float_kwargs(kwargs):
 
 def safe_int_list_cast(lst):
     """For each item of the passed list:
-    Cast an object to str and if it is a number, it will be casted to in,
+    Cast an object to str and if it is a number, it will be casted to int,
     returns the original object, if not
     """
     return [safe_int_cast(x) for x in lst]
@@ -93,6 +93,7 @@ def season_of_date(date: datetime.date) -> str:
         return "autumn"
     else:
         return "winter"
+
 
 
 def convert_bytes(num):

@@ -3,7 +3,7 @@ import plotly.express as px
 import logging
 
 from dash import dcc, html
-from prepare_data import y_variables_dict
+from gpxfun.prepare_data import y_variables_dict
 from sklearn.model_selection import cross_val_score, train_test_split
 
 log = logging.getLogger("gpxfun." + __name__)

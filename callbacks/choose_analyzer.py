@@ -1,7 +1,7 @@
 import logging
 
 from dash import Input, Output, callback, ctx, html, ALL, State
-from analyzer_factory import AnalyzerFactory
+from gpxfun.analyzer_factory import AnalyzerFactory
 
 
 log = logging.getLogger("gpxfun." + __name__)

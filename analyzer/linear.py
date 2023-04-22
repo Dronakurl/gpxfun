@@ -7,20 +7,20 @@ from dash import (
     State,
     callback,
     dash_table,
-    dcc,
+    dcc, # pyright: ignore
     html,
     no_update,
 )
 import dash_bootstrap_components as dbc
 import pandas as pd
-import plotly.express as px
+import plotly.express as px # pyright: ignore
 from sklearn import linear_model
 
-from app_data_functions import get_data_from_pickle_session
-from prepare_data import get_prepared_data
+from dash_app.app_data_functions import get_data_from_pickle_session
+from gpxfun.prepare_data import get_prepared_data
 
 # from sklearn.model_selection import cross_val_score, train_test_split#, cross_val_predict, GridSearchCV
-from prepare_data import y_variables_dict
+from gpxfun.prepare_data import y_variables_dict # pyright: ignore
 
 from .baseanalyzer import BaseAnalyzer
 

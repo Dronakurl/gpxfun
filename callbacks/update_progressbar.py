@@ -3,9 +3,9 @@ import threading
 from pathlib import Path
 
 from dash import Input, Output, State, callback, ctx, no_update
-from utilities import getfilelist, convert_bytes
+from utils.utilities import getfilelist, convert_bytes
 
-from app_layout import MYCOLOR
+from dash_app.app_layout import MYCOLOR
 
 log = logging.getLogger("gpxfun." + __name__)
 

@@ -9,11 +9,11 @@ import logging
 
 import pandas as pd
 
-from calc_dist_matrix import calc_dist_matrix_per_se_cluster
-from cluster_it import cluster_all
-from infer_start_end import infer_start_end
-from parse_gpx import update_pickle_from_folder
-from prepare_data import mark_outliers_per_cluster
+from gpxfun.calc_dist_matrix import calc_dist_matrix_per_se_cluster
+from gpxfun.cluster_it import cluster_all
+from gpxfun.infer_start_end import infer_start_end
+from gpxfun.parse_gpx import update_pickle_from_folder
+from gpxfun.prepare_data import mark_outliers_per_cluster
 
 log = logging.getLogger("gpxfun." + __name__)
 

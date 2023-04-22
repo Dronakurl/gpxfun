@@ -1,7 +1,7 @@
 import logging
 import pickle
 from pathlib import Path
-from utilities import safe_int_list_cast
+from utils.utilities import safe_int_list_cast
 
 from dash import Input, Output, State, callback, ctx, no_update
 

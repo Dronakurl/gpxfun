@@ -10,7 +10,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-from prepare_data import y_variables_dict
+from gpxfun.prepare_data import y_variables_dict
 
 log = logging.getLogger("gpxfun." + __name__)
 
@@ -142,6 +142,7 @@ def plotaroute(
 
 
 def violin(dr: pd.DataFrame, cat_variable: str = "weekday", y_variable: str = "duration"):
+    """ plot a violin plot with the given variables """
     log.debug(f"violin plot with y_variable={y_variable}")
     load_figure_template(TEMPLATE)
     if cat_variable == "cluster":
@@ -208,6 +209,3 @@ def blank_fig():
 #     )
 
 
-# violin(dr,"weekday")
-# violin(dr,"season")
-# violin(dr,"cluster")
