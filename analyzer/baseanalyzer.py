@@ -25,9 +25,6 @@ class BaseAnalyzer(object):
     def __init__(self, data: pd.DataFrame):
         self.d = data
 
-    def analyze(self):
-        pass
-
     def analyze(
         self,
         vars: list[str] = list(varformatdict.keys()),
@@ -45,6 +42,12 @@ class BaseAnalyzer(object):
         X = pd.get_dummies(ds)
         self.dummycols = pd.Series(X.columns)
         y = self.d[y_variable]
+        if len(ds)<5:
+            log.warning(f"not enough data to train a model, only {len(ds)} rows")
+            self.cvscores = None
+            self.test_y = None
+            self.model = None
+            return
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
         # train the model
         model = self.Model(**kwargs)

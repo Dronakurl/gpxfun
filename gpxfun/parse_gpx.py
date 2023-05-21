@@ -174,6 +174,7 @@ def update_pickle_from_list(
         d = pd.concat(
             [d, read_gpx_file_list(fl, delete=delete, weather=weather)], axis=0
         )
+        d = d.reset_index(drop=True)
         mypickle.parents[0].mkdir(exist_ok=True)
         with open(mypickle, "wb") as f:
             pickle.dump(d, f)

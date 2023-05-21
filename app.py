@@ -3,6 +3,7 @@ A plotly-dash app for analyzing gpx data of regular routes
 """
 import logging
 
+
 from dash import Dash
 
 import dash_bootstrap_components as dbc  # pyright: ignore
@@ -20,7 +21,6 @@ dashapp.title = "Bike route analyzer"
 
 dashapp.layout = serve_layout
 
-
 app = dashapp.server
 app.secret_key = "super secret key"  # pyright: ignore
 
@@ -29,5 +29,5 @@ if __name__ == "__main__":
     # from another computer in the local network
     dashapp.run_server(debug=True, port=8080, host="0.0.0.0")
 
-# start with: gunicorn app:app -b :8000
-# start testing servier with: poetry run python -m app
+# start with: poetry run gunicorn app:app -b :8000
+# start testing server with: poetry run python -m app

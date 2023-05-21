@@ -44,6 +44,9 @@ class AnalyzeLinear(BaseAnalyzer):
         **kwargs,
     ):
         super().analyze(vars=vars, y_variable=y_variable, **kwargs)
+        if self.model is None:
+            log.warning("no model fitted, cannot analyze")
+            return
         coeffs = pd.DataFrame([self.dummycols, pd.Series(self.model.coef_)]).T
         interc = pd.DataFrame([["intercept", self.model.intercept_]])
         self.coeffs = pd.concat([coeffs, interc], axis=0)

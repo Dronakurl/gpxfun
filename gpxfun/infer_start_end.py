@@ -35,7 +35,7 @@ def infer_start_end(
     :type infer_by_distance: bool
     """
     d = df.copy()
-    d.drop(["start_lat", "start_lon", "ende_lat", "ende_lon"], axis=1, errors="ignore")
+    d = d.drop(["start_lat", "start_lon", "ende_lat", "ende_lon"], axis=1, errors="ignore")
     startstop4d = d.apply(
         lambda x: [
             x["start"].latitude,
@@ -55,21 +55,21 @@ def infer_start_end(
         breakpoint()
     dists = pdist(np.array(startstop4d.to_list()))
     cluster_labels = fcluster(average(dists), np.quantile(dists, quantile_for_cluster), criterion="distance")
+    assert len(cluster_labels) == len(d)
     d["startendcluster"] = pd.Series(cluster_labels)
+    # Count the number of routes per startendcluster and keep only those with at least 3 routes
     se_cluster = d.startendcluster.value_counts()
     # at least 3 routes per se_cluster
     se_cluster = se_cluster[se_cluster > 2]
     # a maximum of max_no_clusters clusters is chosen
-    se_cluster = (
-        se_cluster.head(max_no_clusters)
-        .reset_index()
-        .drop("startendcluster", axis=1)
-        .rename({"index": "old"}, axis=1)
-        .reset_index()
-        .rename({"index": "startendcluster"}, axis=1)
-    )
+    se_cluster = se_cluster.head(max_no_clusters)
+    se_cluster = se_cluster.to_frame()
+    se_cluster = se_cluster.drop("count", axis=1)
+    se_cluster = se_cluster.reset_index(names="old")
+    se_cluster = se_cluster.reset_index(names="startendcluster")
     se_cluster["startendcluster"] = se_cluster.startendcluster.astype("category")
     d = d.rename({"startendcluster": "old"}, axis=1).merge(se_cluster, on="old", how="left").drop("old", axis=1)
+    assert len(d) == len(cluster_labels)
     d["startendcluster"] = d.startendcluster.cat.add_categories("other").fillna("other")
     se_cluster = d.groupby(["startendcluster"])[["start_lat", "start_lon", "ende_lat", "ende_lon"]].mean().reset_index()
     se_cluster["start"] = se_cluster.apply(lambda x: Location(x["start_lat"], x["start_lon"], None), axis=1)

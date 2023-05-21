@@ -27,6 +27,7 @@ def calc_cluster_from_dist(
     :param distm: distance matrix must be of shape (len(indices),len(indices))
     """
     # confusing: squareform transforms to upperdiagmatrix when called on a square matrix
+    log.debug(f"calc_cluster_from_dist {distm.shape}")
     updiagm = squareform(distm)
     Z = average(updiagm)
     cluster_labels = fcluster(Z, np.quantile(updiagm, 0.3), criterion="distance")
@@ -38,21 +39,20 @@ def calc_cluster_from_dist(
     x = (
         dfcluster.cluster.value_counts()
         .sort_values(ascending=False)
-        .reset_index()
-        .rename({"index": "old"}, axis=1)
-        .reset_index()
-        .rename({"index": "new"}, axis=1)
+        .to_frame()
+        .reset_index(names="old")
+        .reset_index(names="new")
     )
     if min_routes_per_cluster is not None:
 
-        def only_large(r):
-            if r["cluster"] > min_routes_per_cluster:
-                return r["new"]
+        def only_large(row):
+            if row["count"] > min_routes_per_cluster:
+                return row["new"]
             else:
                 return "other"
 
         x["new"] = x.apply(only_large, axis=1)
-    x = x.drop("cluster", axis=1).rename({"old": "cluster"}, axis=1)
+    x = x.drop("count", axis=1).rename({"old": "cluster"}, axis=1)
     x.new = [clusterlabel + "_" + str(r) for r in x.new]
     dfcluster = pd.merge(dfcluster, x, on="cluster").drop("cluster", axis=1).rename({"new": "cluster"}, axis=1)
     dfcluster.index = dfcluster.filename
@@ -78,7 +78,11 @@ def cluster_all(
             clusterlabel=str(a),
             min_routes_per_cluster=min_routes_per_cluster,
         )
-        d.update(dfcluster, join="left")
+        assert d.columns.duplicated().any() == False
+        try:
+            d.update(dfcluster, join="left")
+        except:
+            breakpoint()
     d = d.reset_index(drop=True)
     clustercombis = d.groupby(["startendcluster", "cluster"])["filename"].count().reset_index()
     clustercombis = clustercombis[clustercombis.filename > 0]
@@ -89,14 +93,10 @@ def cluster_all(
     return d, clustercombis
 
 
-def cluster_it(
-    distm,
-    filenamen: list,
-    clusterlabel: str = "cluster"
-) -> pd.DataFrame:
+def cluster_it(distm, filenamen: list, clusterlabel: str = "cluster") -> pd.DataFrame:
     """Finds cluster in a distance matrix"""
     distsm = pairwise_distances(distm)
-    clusterer = DBSCAN(eps=2E-4,metric="precomputed")
+    clusterer = DBSCAN(eps=2e-4, metric="precomputed")
     # clusterer = HDBSCAN(
     #     metric="precomputed",
     #     min_cluster_size=min_cluster_size,
